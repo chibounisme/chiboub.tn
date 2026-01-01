@@ -439,8 +439,8 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
       });
     }
     
-    // Pre-generate embedded stars - more for larger nebulas
-    const numEmbeddedStars = 3 + Math.floor(Math.random() * 8) + Math.floor(nebulaSize / 40);
+    // Pre-generate embedded stars - significantly increased count for "cluster-like" effect
+    const numEmbeddedStars = 15 + Math.floor(Math.random() * 20) + Math.floor(nebulaSize / 10);
     const embeddedStars = [];
     for (let s = 0; s < numEmbeddedStars; s++) {
       // Varied star sizes within nebula
@@ -454,9 +454,14 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
         starSize = 2.0 + Math.random() * 1.5;  // Bright embedded stars
       }
       
+      // Random distribution within the nebula radius
+      // Using sqrt(random) for uniform circular distribution, or power for center bias
+      const r = Math.sqrt(Math.random()) * nebulaSize * 0.8;
+      const theta = Math.random() * Math.PI * 2;
+
       embeddedStars.push({
-        angle: Math.random() * Math.PI * 2,
-        dist: Math.random() * nebulaSize * 0.75,
+        angle: theta,
+        dist: r,
         size: starSize,
         brightness: 0.5 + Math.random() * 0.5,
         color: getRandomStarColor(),
