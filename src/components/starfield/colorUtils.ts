@@ -1,5 +1,5 @@
 import type { Color } from './types';
-import { STAR_COLORS, STAR_COLOR_WEIGHTS, SHOOTING_STAR_COLORS } from './constants';
+import { STAR_COLORS, STAR_COLOR_WEIGHTS, SHOOTING_STAR_COLORS, GALAXY_COLOR_PALETTES, CLUSTER_COLOR_PALETTES } from './constants';
 
 /**
  * Get a random star color with unique per-star variation
@@ -41,51 +41,31 @@ export const getRandomShootingStarColor = (): Color => {
 };
 
 /**
- * Generate random galaxy color with high diversity
- * Based on real galaxy color observations (SDSS surveys)
+ * Get a random galaxy color palette
+ * Returns [core, arm, outer] colors
  */
-export const getRandomGalaxyColor = (): Color => {
-  const galaxyType = Math.random();
-  let r: number, g: number, b: number;
+export const getRandomGalaxyPalette = (): [Color, Color, Color] => {
+  const paletteKeys = Object.keys(GALAXY_COLOR_PALETTES);
+  const randomKey = paletteKeys[Math.floor(Math.random() * paletteKeys.length)];
+  const palette = GALAXY_COLOR_PALETTES[randomKey];
   
-  if (galaxyType < 0.25) {
-    // Young star-forming galaxies (blue)
-    r = 120 + Math.floor(Math.random() * 80);
-    g = 150 + Math.floor(Math.random() * 80);
-    b = 200 + Math.floor(Math.random() * 55);
-  } else if (galaxyType < 0.45) {
-    // Elliptical/old galaxies (red/orange)
-    r = 220 + Math.floor(Math.random() * 35);
-    g = 160 + Math.floor(Math.random() * 60);
-    b = 100 + Math.floor(Math.random() * 60);
-  } else if (galaxyType < 0.6) {
-    // Mixed-age spirals (yellow/gold)
-    r = 200 + Math.floor(Math.random() * 55);
-    g = 180 + Math.floor(Math.random() * 60);
-    b = 120 + Math.floor(Math.random() * 80);
-  } else if (galaxyType < 0.75) {
-    // Active galactic nuclei (purple/violet)
-    r = 160 + Math.floor(Math.random() * 80);
-    g = 100 + Math.floor(Math.random() * 80);
-    b = 180 + Math.floor(Math.random() * 75);
-  } else if (galaxyType < 0.85) {
-    // Starburst galaxies (cyan/teal)
-    r = 100 + Math.floor(Math.random() * 80);
-    g = 180 + Math.floor(Math.random() * 60);
-    b = 200 + Math.floor(Math.random() * 55);
-  } else if (galaxyType < 0.93) {
-    // Seyfert galaxies (green-blue)
-    r = 120 + Math.floor(Math.random() * 60);
-    g = 170 + Math.floor(Math.random() * 60);
-    b = 180 + Math.floor(Math.random() * 60);
-  } else {
-    // Rare/unusual galaxies (pink/rose)
-    r = 200 + Math.floor(Math.random() * 55);
-    g = 140 + Math.floor(Math.random() * 60);
-    b = 170 + Math.floor(Math.random() * 70);
-  }
+  // Return varied versions of the palette colors
+  return [
+    varyColor(palette[0], 20),
+    varyColor(palette[1], 30),
+    varyColor(palette[2], 40)
+  ];
+};
+
+/**
+ * Get a random cluster base color
+ */
+export const getRandomClusterColor = (): Color => {
+  const paletteKeys = Object.keys(CLUSTER_COLOR_PALETTES);
+  const randomKey = paletteKeys[Math.floor(Math.random() * paletteKeys.length)];
+  const baseColor = CLUSTER_COLOR_PALETTES[randomKey];
   
-  return { r, g, b };
+  return varyColor(baseColor, 20);
 };
 
 /**

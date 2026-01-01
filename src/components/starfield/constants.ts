@@ -39,6 +39,15 @@ export const STAR_COLORS: Color[] = [
   { r: 255, g: 130, b: 80 },  // M5: Deep red
   { r: 255, g: 110, b: 70 },  // M8: Very red
   
+  // Carbon Stars (C-type) - Deep ruby red, very rare
+  { r: 255, g: 60, b: 60 },   // Deep Ruby
+  { r: 255, g: 80, b: 40 },   // Garnet
+  { r: 220, g: 40, b: 40 },   // Blood Red
+
+  // Wolf-Rayet Stars (WR) - Intense hot blue/violet
+  { r: 120, g: 140, b: 255 }, // Electric Blue
+  { r: 140, g: 120, b: 255 }, // Violet-Blue
+  
   // Special types
   { r: 255, g: 255, b: 255 }, // Pure white
   { r: 250, g: 250, b: 255 }, // Cool white
@@ -54,6 +63,8 @@ export const STAR_COLOR_WEIGHTS = [
   0.05, 0.06, 0.05,        // G-class (like Sun)
   0.06, 0.07, 0.07, 0.06,  // K-class (common)
   0.08, 0.08, 0.06, 0.04,  // M-class (most common)
+  0.005, 0.005, 0.005,     // Carbon stars (very rare)
+  0.005, 0.005,            // Wolf-Rayet (very rare)
   0.05, 0.03, 0.02,        // Special types
 ];
 
@@ -73,6 +84,53 @@ export const SHOOTING_STAR_COLORS: Color[] = [
   { r: 255, g: 200, b: 150 }, // Peachy - atmospheric heating
   { r: 200, g: 180, b: 255 }, // Violet - calcium
 ];
+
+// Nebula Types
+export const NEBULA_TYPES = [
+  'butterfly', 'hourglass', 'supernova', 'twin-jet', 'ring', 'emission', 'reflection'
+] as const;
+
+// Nebula Color Palettes by Type
+export const NEBULA_PALETTES: { [key: string]: [Color, Color, Color][] } = {
+  'butterfly': [
+    // Red/Orange edges, White/Blue center
+    [{ r: 255, g: 100, b: 50 }, { r: 200, g: 200, b: 255 }, { r: 100, g: 150, b: 255 }],
+    // Deep Red lobes, bright core
+    [{ r: 200, g: 50, b: 50 }, { r: 255, g: 200, b: 200 }, { r: 255, g: 255, b: 255 }],
+  ],
+  'hourglass': [
+    // Orange/Red outer, Green/Blue inner
+    [{ r: 255, g: 150, b: 50 }, { r: 100, g: 255, b: 200 }, { r: 50, g: 200, b: 255 }],
+    // Gold outer, Cyan inner
+    [{ r: 255, g: 200, b: 50 }, { r: 50, g: 255, b: 255 }, { r: 100, g: 200, b: 255 }],
+  ],
+  'supernova': [
+    // Blue/Cyan core, Orange/Gold filaments (Crab-like)
+    [{ r: 100, g: 200, b: 255 }, { r: 255, g: 180, b: 50 }, { r: 255, g: 100, b: 50 }],
+    // Violet core, Red filaments
+    [{ r: 150, g: 100, b: 255 }, { r: 255, g: 80, b: 80 }, { r: 200, g: 50, b: 50 }],
+  ],
+  'twin-jet': [
+    // Green/Teal with Purple/Pink edges
+    [{ r: 50, g: 255, b: 150 }, { r: 200, g: 100, b: 255 }, { r: 255, g: 150, b: 200 }],
+    // Blue jets, Red accretion disk
+    [{ r: 100, g: 200, b: 255 }, { r: 255, g: 50, b: 50 }, { r: 200, g: 100, b: 100 }],
+  ],
+  'ring': [
+    // Classic Ring Nebula (Blue center, Red/Orange ring)
+    [{ r: 100, g: 200, b: 255 }, { r: 255, g: 150, b: 50 }, { r: 200, g: 50, b: 50 }],
+    // Helix Nebula (Blue/Green center, Red outer)
+    [{ r: 100, g: 255, b: 200 }, { r: 255, g: 100, b: 100 }, { r: 200, g: 50, b: 80 }],
+  ],
+  'emission': [
+    // Classic HII Pink/Red
+    [{ r: 255, g: 100, b: 150 }, { r: 200, g: 50, b: 100 }, { r: 150, g: 30, b: 80 }],
+  ],
+  'reflection': [
+    // Blue/White dust
+    [{ r: 200, g: 220, b: 255 }, { r: 150, g: 180, b: 255 }, { r: 100, g: 140, b: 220 }],
+  ]
+};
 
 // Nebula color triplets - based on real nebula emission spectra
 export const NEBULA_COLOR_TRIPLETS: [Color, Color, Color][] = [
@@ -108,7 +166,43 @@ export const NEBULA_COLOR_TRIPLETS: [Color, Color, Color][] = [
   // Carina-like nebulas - complex mix
   [{ r: 100, g: 60, b: 40 }, { r: 180, g: 120, b: 80 }, { r: 255, g: 200, b: 150 }],   // Amber/Gold
   [{ r: 80, g: 80, b: 120 }, { r: 140, g: 140, b: 180 }, { r: 200, g: 200, b: 240 }],  // Steel blue/silver
+
+  // Eagle Nebula (Pillars of Creation) - Gold/Copper/Teal
+  [{ r: 40, g: 20, b: 10 }, { r: 160, g: 100, b: 50 }, { r: 0, g: 100, b: 120 }],
+  
+  // Lagoon Nebula - Pink/Grey/Blue
+  [{ r: 200, g: 50, b: 80 }, { r: 100, g: 100, b: 120 }, { r: 40, g: 60, b: 100 }],
+
+  // Trifid Nebula - Pink/Blue split
+  [{ r: 255, g: 100, b: 100 }, { r: 100, g: 100, b: 255 }, { r: 200, g: 150, b: 200 }],
+
+  // Veil Nebula - Delicate Cyan/Red filaments
+  [{ r: 0, g: 150, b: 200 }, { r: 200, g: 50, b: 50 }, { r: 150, g: 100, b: 150 }],
+
+  // Tarantula Nebula - Complex Gold/Green/Pink
+  [{ r: 180, g: 160, b: 100 }, { r: 100, g: 150, b: 100 }, { r: 200, g: 100, b: 150 }],
 ];
+
+// Galaxy Color Palettes (Core, Middle, Edge)
+export const GALAXY_COLOR_PALETTES: { [key: string]: [Color, Color, Color] } = {
+  'young-blue': [{ r: 200, g: 220, b: 255 }, { r: 100, g: 150, b: 255 }, { r: 50, g: 80, b: 180 }],
+  'old-red': [{ r: 255, g: 200, b: 150 }, { r: 200, g: 100, b: 50 }, { r: 150, g: 50, b: 20 }],
+  'active-purple': [{ r: 255, g: 255, b: 255 }, { r: 180, g: 100, b: 255 }, { r: 80, g: 20, b: 120 }],
+  'starburst-teal': [{ r: 220, g: 255, b: 240 }, { r: 50, g: 200, b: 180 }, { r: 0, g: 100, b: 100 }],
+  'seyfert-green': [{ r: 200, g: 255, b: 200 }, { r: 100, g: 180, b: 120 }, { r: 40, g: 100, b: 60 }],
+  'sombrero-gold': [{ r: 255, g: 240, b: 200 }, { r: 200, g: 160, b: 100 }, { r: 100, g: 60, b: 20 }],
+  'andromeda-silver': [{ r: 255, g: 250, b: 240 }, { r: 200, g: 200, b: 220 }, { r: 120, g: 130, b: 160 }],
+};
+
+// Cluster Color Palettes
+export const CLUSTER_COLOR_PALETTES: { [key: string]: Color } = {
+  'pleiades-blue': { r: 180, g: 210, b: 255 },
+  'omega-centauri-gold': { r: 255, g: 220, b: 150 },
+  'jewel-box-mixed': { r: 255, g: 255, b: 255 }, // Will be varied heavily
+  'butterfly-orange': { r: 255, g: 180, b: 100 },
+  'beehive-yellow': { r: 255, g: 240, b: 180 },
+  'double-cluster-white': { r: 240, g: 240, b: 255 },
+};
 
 // Galaxy type distribution
 export const GALAXY_TYPES = [
@@ -131,5 +225,13 @@ export const MIN_NEBULAS = 6;
 export const MAX_NEBULAS = 12;
 
 // Nebula size range
-export const MIN_NEBULA_SIZE = 40;
-export const MAX_NEBULA_SIZE = 120;
+export const MIN_NEBULA_SIZE = 100;
+export const MAX_NEBULA_SIZE = 300;
+
+// Star Cluster count range
+export const MIN_CLUSTERS = 5;
+export const MAX_CLUSTERS = 15;
+
+// Star Cluster size range
+export const MIN_CLUSTER_SIZE = 30;
+export const MAX_CLUSTER_SIZE = 100;
