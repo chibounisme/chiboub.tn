@@ -123,8 +123,8 @@ export const SHOOTING_STAR_MIN_DELAY = 5;
 export const SHOOTING_STAR_MAX_DELAY = 15;
 
 // Galaxy count range
-export const MIN_GALAXIES = 40;
-export const MAX_GALAXIES = 80;
+export const MIN_GALAXIES = 100;
+export const MAX_GALAXIES = 200;
 
 // Nebula count range
 export const MIN_NEBULAS = 6;
