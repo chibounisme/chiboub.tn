@@ -33,15 +33,22 @@ interface Galaxy {
   size: number;
   rotation: number;
   brightness: number;
+  type: 'spiral' | 'barred-spiral' | 'elliptical' | 'irregular' | 'lenticular';
+  // 3D orientation - simulates viewing angle
+  inclination: number; // 0 = face-on, 1 = edge-on
+  tilt: number; // Secondary rotation axis
   arms: number;
-  armTightness: number; // How tightly wound the spiral is
-  armSpread: number; // How spread out the arms are
-  coreSize: number; // Size of the central core
+  armTightness: number;
+  armSpread: number;
+  coreSize: number;
   coreColor: { r: number; g: number; b: number };
   armColor: { r: number; g: number; b: number };
   outerColor: { r: number; g: number; b: number };
   parallaxFactor: number;
-  armPoints: { t: number; offset: number; dotSize: number }[][]; // Pre-generated arm points
+  armPoints: { t: number; offset: number; dotSize: number }[][];
+  // For elliptical/irregular galaxies
+  ellipticity: number; // 0 = circular, 1 = very elongated
+  starPoints: { x: number; y: number; size: number; brightness: number }[];
 }
 
 interface Nebula {
@@ -61,6 +68,7 @@ interface Nebula {
   blobs: { angle: number; dist: number; size: number }[][];
   filaments: { startAngle: number; endAngle: number; startDist: number; endDist: number; ctrlX: number; ctrlY: number; lineWidth: number; colorIndex: number }[];
   dustParticles: { angle: number; dist: number; colorIndex: number; alpha: number; size: number }[];
+  embeddedStars: { angle: number; dist: number; size: number; brightness: number; color: { r: number; g: number; b: number } }[];
   parallaxFactor: number;
 }
 
@@ -195,53 +203,119 @@ const StarField: FC = () => {
       galaxies = [];
       nebulas = [];
       
-      // Add 2-4 small galaxies with unique colors and shapes
-      const numGalaxies = 2 + Math.floor(Math.random() * 3);
+      // Add 12-20 galaxies with varied types and sizes (simulating distance)
+      const numGalaxies = 12 + Math.floor(Math.random() * 9);
+      const galaxyTypes: ('spiral' | 'barred-spiral' | 'elliptical' | 'irregular' | 'lenticular')[] = 
+        ['spiral', 'spiral', 'barred-spiral', 'elliptical', 'elliptical', 'irregular', 'lenticular'];
+      
       for (let i = 0; i < numGalaxies; i++) {
         const baseColor = getRandomGalaxyColor();
-        const numArms = 2 + Math.floor(Math.random() * 4); // 2-5 arms
-        const galaxySize = 20 + Math.random() * 40;
+        const galaxyType = galaxyTypes[Math.floor(Math.random() * galaxyTypes.length)];
         
-        // Pre-generate arm points for consistent rendering
+        // Size varies dramatically to simulate distance
+        // Some very distant (tiny), some closer (larger)
+        const distanceFactor = Math.random();
+        let galaxySize: number;
+        if (distanceFactor < 0.4) {
+          // Distant galaxies (40%) - very small
+          galaxySize = 5 + Math.random() * 15;
+        } else if (distanceFactor < 0.75) {
+          // Medium distance (35%)
+          galaxySize = 20 + Math.random() * 30;
+        } else {
+          // Closer galaxies (25%) - larger
+          galaxySize = 50 + Math.random() * 50;
+        }
+        
+        // 3D orientation
+        const inclination = Math.random(); // 0 = face-on, 1 = edge-on
+        const tilt = Math.random() * Math.PI * 2;
+        
+        // Number of arms based on type
+        let numArms = 0;
+        if (galaxyType === 'spiral') {
+          numArms = 2 + Math.floor(Math.random() * 4); // 2-5 arms
+        } else if (galaxyType === 'barred-spiral') {
+          numArms = 2; // Barred spirals typically have 2 main arms
+        }
+        
+        // Pre-generate arm points for spiral types
         const armPoints: { t: number; offset: number; dotSize: number }[][] = [];
-        const numPointsPerArm = 25 + Math.floor(Math.random() * 20);
+        if (galaxyType === 'spiral' || galaxyType === 'barred-spiral') {
+          const numPointsPerArm = 20 + Math.floor(Math.random() * 25);
+          for (let arm = 0; arm < numArms; arm++) {
+            const points: { t: number; offset: number; dotSize: number }[] = [];
+            for (let p = 0; p < numPointsPerArm; p++) {
+              const t = p / numPointsPerArm;
+              const sizeScale = galaxySize / 50; // Scale dot size with galaxy size
+              points.push({
+                t,
+                offset: (Math.random() - 0.5) * 6 * t * sizeScale,
+                dotSize: Math.max(0.3, (1 - t) * (1.5 + Math.random() * 1.5) * sizeScale),
+              });
+            }
+            armPoints.push(points);
+          }
+        }
         
-        for (let arm = 0; arm < numArms; arm++) {
-          const points: { t: number; offset: number; dotSize: number }[] = [];
-          for (let p = 0; p < numPointsPerArm; p++) {
-            const t = p / numPointsPerArm;
-            points.push({
-              t,
-              offset: (Math.random() - 0.5) * 8 * t, // Random perpendicular offset
-              dotSize: (1 - t) * (2 + Math.random() * 2) + 0.3,
+        // Pre-generate star points for elliptical/irregular galaxies
+        const starPoints: { x: number; y: number; size: number; brightness: number }[] = [];
+        if (galaxyType === 'elliptical' || galaxyType === 'irregular' || galaxyType === 'lenticular') {
+          const numStars = Math.floor(15 + Math.random() * 30 * (galaxySize / 30));
+          for (let s = 0; s < numStars; s++) {
+            // Gaussian-like distribution for elliptical, random for irregular
+            let sx: number, sy: number;
+            if (galaxyType === 'irregular') {
+              sx = (Math.random() - 0.5) * 2;
+              sy = (Math.random() - 0.5) * 2;
+            } else {
+              // Elliptical distribution - more concentrated in center
+              const r = Math.random() * Math.random(); // Squared for concentration
+              const angle = Math.random() * Math.PI * 2;
+              sx = Math.cos(angle) * r;
+              sy = Math.sin(angle) * r;
+            }
+            starPoints.push({
+              x: sx,
+              y: sy,
+              size: Math.max(0.2, (0.3 + Math.random() * 0.8) * (galaxySize / 40)),
+              brightness: 0.3 + Math.random() * 0.7,
             });
           }
-          armPoints.push(points);
         }
+        
+        // Ellipticity for elliptical galaxies (E0-E7 classification)
+        const ellipticity = galaxyType === 'elliptical' ? Math.random() * 0.7 : 
+                           galaxyType === 'lenticular' ? 0.5 + Math.random() * 0.3 : 0;
         
         galaxies.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
           size: galaxySize,
           rotation: Math.random() * Math.PI * 2,
-          brightness: 0.03 + Math.random() * 0.05,
+          brightness: 0.02 + Math.random() * 0.06,
+          type: galaxyType,
+          inclination,
+          tilt,
           arms: numArms,
-          armTightness: 1.0 + Math.random() * 1.5, // How many rotations the spiral makes
-          armSpread: 0.3 + Math.random() * 0.3, // Flattening factor (0.3-0.6)
-          coreSize: 0.2 + Math.random() * 0.2, // Core size as fraction of total
+          armTightness: galaxyType === 'barred-spiral' ? 0.8 + Math.random() * 0.6 : 1.0 + Math.random() * 1.5,
+          armSpread: 0.3 + Math.random() * 0.4,
+          coreSize: galaxyType === 'elliptical' ? 0.6 + Math.random() * 0.3 : 0.15 + Math.random() * 0.2,
           coreColor: varyColor(baseColor, 30),
           armColor: varyColor(baseColor, 50),
           outerColor: varyColor(baseColor, 70),
-          parallaxFactor: 0.02 + Math.random() * 0.03,
+          parallaxFactor: 0.01 + (1 - galaxySize / 100) * 0.04, // Smaller = more distant = less parallax
           armPoints,
+          ellipticity,
+          starPoints,
         });
       }
       
-      // Add 3-5 nebulas with more complex structure
-      const numNebulas = 3 + Math.floor(Math.random() * 3);
+      // Add 6-10 nebulas with smaller size
+      const numNebulas = 6 + Math.floor(Math.random() * 5);
       for (let i = 0; i < numNebulas; i++) {
         const colorTriplet = nebulaColorTriplets[Math.floor(Math.random() * nebulaColorTriplets.length)];
-        const nebulaSize = 150 + Math.random() * 300;
+        const nebulaSize = 40 + Math.random() * 80; // Much smaller: 40-120 instead of 150-450
         const noiseSeeds = Array.from({ length: 8 }, () => Math.random() * 1000);
         
         // Create multiple layers for depth
@@ -323,7 +397,7 @@ const StarField: FC = () => {
         }
         
         // Pre-generate dust particles
-        const numDustParticles = Math.floor(nebulaSize / 3);
+        const numDustParticles = Math.floor(nebulaSize / 5); // Fewer particles for smaller nebulas
         const dustParticles = [];
         for (let d = 0; d < numDustParticles; d++) {
           const pAngle = Math.random() * Math.PI * 2;
@@ -333,7 +407,22 @@ const StarField: FC = () => {
             dist: pDist,
             colorIndex: Math.random() < 0.5 ? 0 : 1,
             alpha: 0.2 + Math.random() * 0.4,
-            size: 0.5 + Math.random() * 2,
+            size: 0.3 + Math.random() * 1.2, // Smaller dust for smaller nebulas
+          });
+        }
+        
+        // Pre-generate embedded stars inside the nebula
+        const numEmbeddedStars = 5 + Math.floor(Math.random() * 10); // 5-15 stars per nebula
+        const embeddedStars = [];
+        for (let s = 0; s < numEmbeddedStars; s++) {
+          const sAngle = Math.random() * Math.PI * 2;
+          const sDist = Math.random() * nebulaSize * 0.7; // Stars concentrated in inner area
+          embeddedStars.push({
+            angle: sAngle,
+            dist: sDist,
+            size: 0.5 + Math.random() * 1.5,
+            brightness: 0.6 + Math.random() * 0.4,
+            color: getRandomStarColor(),
           });
         }
         
@@ -341,7 +430,7 @@ const StarField: FC = () => {
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
           size: nebulaSize,
-          brightness: 0.015 + Math.random() * 0.025,
+          brightness: 0.02 + Math.random() * 0.03, // Slightly brighter for smaller nebulas
           color1: colorTriplet[0],
           color2: colorTriplet[1],
           color3: colorTriplet[2],
@@ -353,6 +442,7 @@ const StarField: FC = () => {
           blobs,
           filaments,
           dustParticles,
+          embeddedStars,
           parallaxFactor: 0.01 + Math.random() * 0.02, // Very subtle for nebulas
         });
       }
@@ -360,7 +450,8 @@ const StarField: FC = () => {
 
     const initStars = () => {
       stars = [];
-      const numStars = Math.floor((canvas.width * canvas.height) / 2500);
+      // Much higher star density for realistic universe feel
+      const numStars = Math.floor((canvas.width * canvas.height) / 600);
       
       for (let i = 0; i < numStars; i++) {
         // Parallax factor based on star size (smaller = further = less parallax)
@@ -494,6 +585,25 @@ const StarField: FC = () => {
           ctx.fill();
         });
         
+        // Draw embedded stars inside the nebula
+        nebula.embeddedStars.forEach((star) => {
+          const sx = Math.cos(star.angle) * star.dist;
+          const sy = Math.sin(star.angle) * star.dist * 0.7;
+          const { r, g, b } = star.color;
+          
+          // Star core
+          ctx.beginPath();
+          ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${star.brightness})`;
+          ctx.fill();
+          
+          // Star glow
+          ctx.beginPath();
+          ctx.arc(sx, sy, star.size * 2.5, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${star.brightness * 0.2})`;
+          ctx.fill();
+        });
+        
         // Central glow (star-forming region)
         const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.25);
         coreGradient.addColorStop(0, `rgba(${color3.r}, ${color3.g}, ${color3.b}, ${brightness * 1.5})`);
@@ -512,7 +622,7 @@ const StarField: FC = () => {
 
     const drawGalaxies = () => {
       galaxies.forEach((galaxy) => {
-        const { x, y, size, rotation, brightness, arms, armTightness, armSpread, coreSize, coreColor, armColor, outerColor, parallaxFactor, armPoints } = galaxy;
+        const { x, y, size, rotation, brightness, type, inclination, arms, armTightness, armSpread, coreSize, coreColor, armColor, outerColor, parallaxFactor, armPoints, ellipticity, starPoints } = galaxy;
         
         // Apply parallax offset
         const parallaxX = mouseX * parallaxFactor * canvas.width * 0.5;
@@ -522,50 +632,168 @@ const StarField: FC = () => {
         ctx.translate(x + parallaxX, y + parallaxY);
         ctx.rotate(rotation);
         
-        // Draw galaxy core with gradient from core color to arm color
-        const coreRadius = size * coreSize;
-        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
-        coreGradient.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 3})`);
-        coreGradient.addColorStop(0.5, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${brightness * 1.5})`);
-        coreGradient.addColorStop(1, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, 0)`);
+        // Apply 3D inclination - squash vertically to simulate viewing angle
+        const yScale = 1 - inclination * 0.85; // 0.15 to 1.0
+        ctx.scale(1, yScale);
         
-        ctx.fillStyle = coreGradient;
-        ctx.beginPath();
-        ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
-        ctx.fill();
-        
-        // Draw spiral arms using pre-generated points
-        for (let armIndex = 0; armIndex < arms; armIndex++) {
-          const armRotation = (armIndex / arms) * Math.PI * 2;
-          const points = armPoints[armIndex] || [];
+        if (type === 'elliptical' || type === 'lenticular') {
+          // Draw elliptical/lenticular galaxy
+          const xRadius = size;
+          const yRadius = size * (1 - ellipticity);
           
-          points.forEach((point) => {
-            const { t, offset, dotSize } = point;
-            const spiralAngle = armRotation + t * Math.PI * armTightness;
-            const distance = t * size;
+          // Outer halo
+          const haloGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, xRadius);
+          haloGradient.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 2})`);
+          haloGradient.addColorStop(0.3, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${brightness * 1.2})`);
+          haloGradient.addColorStop(0.6, `rgba(${outerColor.r}, ${outerColor.g}, ${outerColor.b}, ${brightness * 0.5})`);
+          haloGradient.addColorStop(1, `rgba(${outerColor.r}, ${outerColor.g}, ${outerColor.b}, 0)`);
+          
+          ctx.fillStyle = haloGradient;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, xRadius, yRadius, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw individual stars for texture
+          starPoints.forEach((star) => {
+            const sx = star.x * xRadius;
+            const sy = star.y * yRadius;
+            const alpha = brightness * star.brightness * (1 - Math.sqrt(star.x * star.x + star.y * star.y));
             
-            // Calculate base position on spiral
-            const baseX = Math.cos(spiralAngle) * distance;
-            const baseY = Math.sin(spiralAngle) * distance * armSpread;
-            
-            // Add perpendicular offset for natural variation
-            const perpAngle = spiralAngle + Math.PI / 2;
-            const armX = baseX + Math.cos(perpAngle) * offset;
-            const armY = baseY + Math.sin(perpAngle) * offset * armSpread;
-            
-            // Blend color from arm color (inner) to outer color (outer)
-            const colorBlend = t;
-            const r = Math.floor(armColor.r * (1 - colorBlend) + outerColor.r * colorBlend);
-            const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
-            const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
-            
-            const alpha = brightness * (1 - t * 0.7);
+            if (alpha > 0.01) {
+              ctx.beginPath();
+              ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${alpha})`;
+              ctx.fill();
+            }
+          });
+          
+        } else if (type === 'irregular') {
+          // Draw irregular galaxy - asymmetric blob
+          starPoints.forEach((star) => {
+            const sx = star.x * size;
+            const sy = star.y * size;
+            const alpha = brightness * star.brightness;
             
             ctx.beginPath();
-            ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+            ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${alpha})`;
             ctx.fill();
           });
+          
+          // Faint core glow
+          const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.4);
+          coreGradient.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 0.8})`);
+          coreGradient.addColorStop(1, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, 0)`);
+          ctx.fillStyle = coreGradient;
+          ctx.beginPath();
+          ctx.arc(0, 0, size * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+          
+        } else if (type === 'barred-spiral') {
+          // Draw barred spiral galaxy
+          const coreRadius = size * coreSize;
+          const barLength = size * 0.4;
+          const barWidth = size * 0.08;
+          
+          // Draw central bar
+          const barGradient = ctx.createLinearGradient(-barLength, 0, barLength, 0);
+          barGradient.addColorStop(0, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, 0)`);
+          barGradient.addColorStop(0.3, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 1.5})`);
+          barGradient.addColorStop(0.5, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 2})`);
+          barGradient.addColorStop(0.7, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 1.5})`);
+          barGradient.addColorStop(1, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, 0)`);
+          
+          ctx.fillStyle = barGradient;
+          ctx.beginPath();
+          ctx.ellipse(0, 0, barLength, barWidth, 0, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw core
+          const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+          coreGradient.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 3})`);
+          coreGradient.addColorStop(0.5, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${brightness * 1.5})`);
+          coreGradient.addColorStop(1, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, 0)`);
+          
+          ctx.fillStyle = coreGradient;
+          ctx.beginPath();
+          ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw spiral arms starting from bar ends
+          for (let armIndex = 0; armIndex < 2; armIndex++) {
+            const armStartX = armIndex === 0 ? barLength : -barLength;
+            const armRotation = armIndex === 0 ? 0 : Math.PI;
+            const points = armPoints[armIndex] || [];
+            
+            points.forEach((point) => {
+              const { t, offset, dotSize } = point;
+              const spiralAngle = armRotation + t * Math.PI * armTightness;
+              const distance = barLength + t * (size - barLength);
+              
+              const baseX = Math.cos(spiralAngle) * distance;
+              const baseY = Math.sin(spiralAngle) * distance * armSpread;
+              
+              const perpAngle = spiralAngle + Math.PI / 2;
+              const armX = baseX + Math.cos(perpAngle) * offset;
+              const armY = baseY + Math.sin(perpAngle) * offset * armSpread;
+              
+              const colorBlend = t;
+              const r = Math.floor(armColor.r * (1 - colorBlend) + outerColor.r * colorBlend);
+              const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
+              const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
+              
+              const alpha = brightness * (1 - t * 0.7);
+              
+              ctx.beginPath();
+              ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+              ctx.fill();
+            });
+          }
+          
+        } else {
+          // Draw regular spiral galaxy
+          const coreRadius = size * coreSize;
+          const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+          coreGradient.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 3})`);
+          coreGradient.addColorStop(0.5, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${brightness * 1.5})`);
+          coreGradient.addColorStop(1, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, 0)`);
+          
+          ctx.fillStyle = coreGradient;
+          ctx.beginPath();
+          ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
+          ctx.fill();
+          
+          // Draw spiral arms
+          for (let armIndex = 0; armIndex < arms; armIndex++) {
+            const armRotation = (armIndex / arms) * Math.PI * 2;
+            const points = armPoints[armIndex] || [];
+            
+            points.forEach((point) => {
+              const { t, offset, dotSize } = point;
+              const spiralAngle = armRotation + t * Math.PI * armTightness;
+              const distance = t * size;
+              
+              const baseX = Math.cos(spiralAngle) * distance;
+              const baseY = Math.sin(spiralAngle) * distance * armSpread;
+              
+              const perpAngle = spiralAngle + Math.PI / 2;
+              const armX = baseX + Math.cos(perpAngle) * offset;
+              const armY = baseY + Math.sin(perpAngle) * offset * armSpread;
+              
+              const colorBlend = t;
+              const r = Math.floor(armColor.r * (1 - colorBlend) + outerColor.r * colorBlend);
+              const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
+              const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
+              
+              const alpha = brightness * (1 - t * 0.7);
+              
+              ctx.beginPath();
+              ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
+              ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+              ctx.fill();
+            });
+          }
         }
         
         ctx.restore();
