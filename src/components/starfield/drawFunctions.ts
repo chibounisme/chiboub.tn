@@ -181,7 +181,6 @@ export const drawGalaxies = (
     
     // Size scales with approach
     const sizeMultiplier = 0.6 + approachPhase * 0.8;
-    const effectiveSize = size * sizeMultiplier;
     
     // Alpha: quick fade in/out at edges
     let depthAlpha = 1;
