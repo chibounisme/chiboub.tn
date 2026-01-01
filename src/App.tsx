@@ -9,33 +9,17 @@ function App() {
   
   // Content fades to 30% opacity when drifting
   const contentOpacity = 1 - driftAmount * 0.7;
-  
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.15,
-        delayChildren: 0.3,
-      },
-    },
-  };
-
-  const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 30 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.8,
-        ease: [0.25, 0.46, 0.45, 0.94] as [number, number, number, number],
-      },
-    },
-  };
 
   return (
     <div className="app">
-      <StarField onDriftChange={setDriftAmount} />
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 2.0, ease: "easeOut" }}
+        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
+      >
+        <StarField onDriftChange={setDriftAmount} />
+      </motion.div>
       
       <div 
         className="content-fade-wrapper"
@@ -44,22 +28,14 @@ function App() {
           transition: 'opacity 0.3s ease-out'
         }}
       >
-        <motion.main
-          className="content"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-        <motion.h1 className="name" variants={itemVariants}>
+        <main className="content">
+        <h1 className="name">
           Mohamed Chiboub
-        </motion.h1>
-        <motion.h2 className="title" variants={itemVariants}>
+        </h1>
+        <h2 className="title">
           Software Engineer
-        </motion.h2>
-        <motion.nav 
-          className="social-links"
-          variants={itemVariants}
-        >
+        </h2>
+        <nav className="social-links">
           <motion.a 
             href="https://github.com/chibounisme" 
             target="_blank" 
@@ -91,8 +67,8 @@ function App() {
           >
             <EmailIcon />
           </motion.a>
-        </motion.nav>
-      </motion.main>
+        </nav>
+      </main>
       </div>
     </div>
   );
