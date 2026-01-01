@@ -1,4 +1,4 @@
-import type { Star, ShootingStar, Galaxy, Nebula, GalaxyType } from './types';
+import type { Star, ShootingStar, Galaxy, Nebula, GalaxyType, NebulaType } from './types';
 import {
   STAR_DENSITY_FACTOR,
   GALAXY_TYPES,
@@ -8,12 +8,14 @@ import {
   MAX_NEBULAS,
   MIN_NEBULA_SIZE,
   MAX_NEBULA_SIZE,
-  NEBULA_COLOR_TRIPLETS,
+  NEBULA_TYPES,
+  NEBULA_PALETTES,
 } from './constants';
 import {
   getRandomStarColor,
   getRandomShootingStarColor,
-  getRandomGalaxyColor,
+  getRandomGalaxyPalette,
+  getRandomClusterColor,
   varyColor,
 } from './colorUtils';
 
@@ -145,7 +147,7 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
   const numGalaxies = MIN_GALAXIES + Math.floor(Math.random() * (MAX_GALAXIES - MIN_GALAXIES + 1));
   
   for (let i = 0; i < numGalaxies; i++) {
-    const baseColor = getRandomGalaxyColor();
+    const [coreColor, armColor, outerColor] = getRandomGalaxyPalette();
     const galaxyType = GALAXY_TYPES[Math.floor(Math.random() * GALAXY_TYPES.length)] as GalaxyType;
     
     // More diverse size distribution simulating cosmic distance
@@ -260,9 +262,9 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
       armTightness: galaxyType === 'barred-spiral' ? 0.5 + Math.random() * 1.0 : 0.4 + Math.random() * 2.5,
       armSpread: 0.1 + Math.random() * 0.8,
       coreSize: galaxyType === 'elliptical' ? 0.3 + Math.random() * 0.6 : 0.05 + Math.random() * 0.3,
-      coreColor: varyColor(baseColor, 40),
-      armColor: varyColor(baseColor, 60),
-      outerColor: varyColor(baseColor, 80),
+      coreColor,
+      armColor,
+      outerColor,
       parallaxFactor: 0.005 + (1 - galaxySize / 150) * 0.05,
       armPoints,
       ellipticity,
@@ -281,12 +283,15 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
   const numNebulas = MIN_NEBULAS + Math.floor(Math.random() * (MAX_NEBULAS - MIN_NEBULAS + 1));
   
   for (let i = 0; i < numNebulas; i++) {
-    // Select color triplet and add unique variation
-    const baseTriplet = NEBULA_COLOR_TRIPLETS[Math.floor(Math.random() * NEBULA_COLOR_TRIPLETS.length)];
+    // Select random type and corresponding palette
+    const type = NEBULA_TYPES[Math.floor(Math.random() * NEBULA_TYPES.length)] as NebulaType;
+    const palettes = NEBULA_PALETTES[type];
+    const baseTriplet = palettes[Math.floor(Math.random() * palettes.length)];
+    
     const colorTriplet: [typeof baseTriplet[0], typeof baseTriplet[1], typeof baseTriplet[2]] = [
-      varyColor(baseTriplet[0], 40),
-      varyColor(baseTriplet[1], 40),
-      varyColor(baseTriplet[2], 40),
+      varyColor(baseTriplet[0], 30),
+      varyColor(baseTriplet[1], 30),
+      varyColor(baseTriplet[2], 30),
     ];
     
     // More diverse nebula sizes
@@ -321,26 +326,45 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
         opacity: 0.3 + Math.random() * 0.5,
       });
       
-      // Pre-generate blobs
-      const numBlobs = 5 + Math.floor(Math.random() * 4);
+      // Generate blobs based on type
       const layerBlobs = [];
+      const numBlobs = 5 + Math.floor(Math.random() * 4);
+      
       for (let b = 0; b < numBlobs; b++) {
-        const angle = (b / numBlobs) * Math.PI * 2 + seed;
-        const n1 = Math.sin(b * 50 * 0.01 + seed) * Math.cos(seed * 10 * 0.01 + seed * 0.7);
-        const n2 = Math.sin(b * 50 * 0.02 - seed * 0.3) * Math.sin(seed * 10 * 0.015 + seed * 0.5);
-        const n3 = Math.cos(b * 50 * 0.008 + seed * 10 * 0.008 + seed * 0.2) * 0.5;
-        const noise1 = (n1 + n2 + n3 + 2) / 4;
+        let angle: number, dist: number, size: number;
         
-        const n4 = Math.sin(b * 30 * 0.01 + seed) * Math.cos(b * 20 * 0.01 + seed * 0.7);
-        const n5 = Math.sin(b * 30 * 0.02 - seed * 0.3) * Math.sin(b * 20 * 0.015 + seed * 0.5);
-        const n6 = Math.cos(b * 30 * 0.008 + b * 20 * 0.008 + seed * 0.2) * 0.5;
-        const noise2 = (n4 + n5 + n6 + 2) / 4;
+        // Shape logic based on type
+        if (type === 'butterfly') {
+          // Two lobes at 0 and PI
+          const side = Math.random() < 0.5 ? 0 : Math.PI;
+          angle = side + (Math.random() - 0.5) * 1.0; // Cone spread
+          dist = layerSize * (0.2 + Math.random() * 0.6);
+          size = layerSize * (0.3 + Math.random() * 0.4);
+        } else if (type === 'hourglass') {
+          // Two lobes but wider/conical
+          const side = Math.random() < 0.5 ? 0 : Math.PI;
+          angle = side + (Math.random() - 0.5) * 1.5; // Wider cone
+          dist = layerSize * (0.1 + Math.random() * 0.7);
+          size = layerSize * (0.2 + Math.random() * 0.5);
+        } else if (type === 'twin-jet') {
+          // Narrow jets along axis
+          const side = Math.random() < 0.5 ? 0 : Math.PI;
+          angle = side + (Math.random() - 0.5) * 0.3; // Very narrow
+          dist = layerSize * (0.1 + Math.random() * 0.9);
+          size = layerSize * (0.1 + Math.random() * 0.3); // Smaller blobs
+        } else if (type === 'ring') {
+          // Ring shape
+          angle = Math.random() * Math.PI * 2;
+          dist = layerSize * (0.6 + Math.random() * 0.2); // Ring radius
+          size = layerSize * (0.2 + Math.random() * 0.3);
+        } else {
+          // Default cloud/supernova
+          angle = (b / numBlobs) * Math.PI * 2 + seed;
+          dist = layerSize * 0.3 * Math.random();
+          size = layerSize * (0.3 + Math.random() * 0.5);
+        }
         
-        layerBlobs.push({
-          angle,
-          dist: layerSize * 0.3 * noise1,
-          size: layerSize * (0.3 + noise2 * 0.5),
-        });
+        layerBlobs.push({ angle, dist, size });
       }
       blobs.push(layerBlobs);
     }
@@ -356,26 +380,47 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
       });
     }
     
-    // Pre-generate filaments
+    // Generate filaments based on type
     const numFilaments = 3 + Math.floor(Math.random() * 3);
     const filaments = [];
     for (let f = 0; f < numFilaments; f++) {
-      const startAngle = (f / numFilaments) * Math.PI * 2;
-      const endAngle = startAngle + Math.PI * (0.5 + Math.random() * 0.5);
-      const startDist = nebulaSize * 0.2;
-      const endDist = nebulaSize * (0.4 + Math.random() * 0.3);
-      const startX = Math.cos(startAngle) * startDist;
-      const startY = Math.sin(startAngle) * startDist * 0.6;
-      const endX = Math.cos(endAngle) * endDist;
-      const endY = Math.sin(endAngle) * endDist * 0.6;
+      let startAngle: number, endAngle: number, startDist: number, endDist: number;
+      
+      if (type === 'butterfly' || type === 'hourglass') {
+        // Filaments follow the lobes
+        const side = f % 2 === 0 ? 0 : Math.PI;
+        startAngle = side + (Math.random() - 0.5) * 0.5;
+        endAngle = startAngle + (Math.random() - 0.5) * 0.5;
+        startDist = nebulaSize * 0.1;
+        endDist = nebulaSize * (0.5 + Math.random() * 0.4);
+      } else if (type === 'twin-jet') {
+        // Long straight filaments
+        const side = f % 2 === 0 ? 0 : Math.PI;
+        startAngle = side;
+        endAngle = side + (Math.random() - 0.5) * 0.1;
+        startDist = nebulaSize * 0.1;
+        endDist = nebulaSize * (0.8 + Math.random() * 0.4); // Very long
+      } else if (type === 'ring') {
+        // Filaments along the ring
+        startAngle = (f / numFilaments) * Math.PI * 2;
+        endAngle = startAngle + Math.PI * 0.5;
+        startDist = nebulaSize * 0.6;
+        endDist = nebulaSize * 0.6;
+      } else {
+        // Random
+        startAngle = (f / numFilaments) * Math.PI * 2;
+        endAngle = startAngle + Math.PI * (0.5 + Math.random() * 0.5);
+        startDist = nebulaSize * 0.2;
+        endDist = nebulaSize * (0.4 + Math.random() * 0.3);
+      }
       
       filaments.push({
         startAngle,
         endAngle,
         startDist,
         endDist,
-        ctrlX: (startX + endX) / 2 + (Math.random() - 0.5) * nebulaSize * 0.3,
-        ctrlY: (startY + endY) / 2 + (Math.random() - 0.5) * nebulaSize * 0.2,
+        ctrlX: (Math.cos(startAngle) * startDist + Math.cos(endAngle) * endDist) / 2 + (Math.random() - 0.5) * nebulaSize * 0.3,
+        ctrlY: (Math.sin(startAngle) * startDist + Math.sin(endAngle) * endDist) / 2 + (Math.random() - 0.5) * nebulaSize * 0.2,
         lineWidth: 2 + Math.random() * 6,
         colorIndex: f % 2,
       });
@@ -432,6 +477,7 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
       color3: colorTriplet[2],
       shape: Math.random(),
       rotation: Math.random() * Math.PI * 2,
+      type,
       noiseSeeds,
       dustLanes,
       layers,
@@ -444,6 +490,69 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
   }
   
   return nebulas;
+};
+
+/**
+ * Initialize star clusters
+ */
+export const initStarClusters = (width: number, height: number): import('./types').StarCluster[] => {
+  const clusters: import('./types').StarCluster[] = [];
+  const numClusters = 5 + Math.floor(Math.random() * 10); // 5-15 clusters
+  
+  for (let i = 0; i < numClusters; i++) {
+    const type = Math.random() < 0.7 ? 'open' : 'globular';
+    const size = type === 'open' 
+      ? 40 + Math.random() * 60 
+      : 20 + Math.random() * 40;
+      
+    const numStars = type === 'open'
+      ? 30 + Math.floor(Math.random() * 50)
+      : 100 + Math.floor(Math.random() * 200);
+      
+    const clusterStars: import('./types').ClusterStar[] = [];
+    // Use specific cluster palette 70% of time, random star color 30%
+    const baseColor = Math.random() < 0.7 ? getRandomClusterColor() : getRandomStarColor();
+    
+    for (let s = 0; s < numStars; s++) {
+      // Distribution logic
+      let sx: number, sy: number;
+      if (type === 'globular') {
+        // Dense center, sparse edges (gaussian-ish)
+        const r = size * Math.pow(Math.random(), 2); // Bias to center
+        const theta = Math.random() * Math.PI * 2;
+        sx = Math.cos(theta) * r;
+        sy = Math.sin(theta) * r;
+      } else {
+        // Random scatter
+        sx = (Math.random() - 0.5) * 2 * size;
+        sy = (Math.random() - 0.5) * 2 * size;
+      }
+      
+      clusterStars.push({
+        x: sx,
+        y: sy,
+        size: 0.5 + Math.random() * 1.5,
+        color: varyColor(baseColor, 30),
+        brightness: 0.4 + Math.random() * 0.6,
+        twinkleSpeed: 0.02 + Math.random() * 0.05,
+        twinkleOffset: Math.random() * Math.PI * 2,
+      });
+    }
+    
+    clusters.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size,
+      brightness: 0.8 + Math.random() * 0.2,
+      stars: clusterStars,
+      color: baseColor,
+      parallaxFactor: 0.01 + Math.random() * 0.02,
+      rotation: Math.random() * Math.PI * 2,
+      type
+    });
+  }
+  
+  return clusters;
 };
 
 /**
