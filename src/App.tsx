@@ -1,9 +1,15 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { StarField } from './components/starfield';
 import { GitHubIcon, LinkedInIcon, EmailIcon } from './components/Icons';
 import './App.css';
 
 function App() {
+  const [driftAmount, setDriftAmount] = useState(0);
+  
+  // Content fades to 30% opacity when drifting
+  const contentOpacity = 1 - driftAmount * 0.7;
+  
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -29,14 +35,21 @@ function App() {
 
   return (
     <div className="app">
-      <StarField />
+      <StarField onDriftChange={setDriftAmount} />
       
-      <motion.main
-        className="content"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
+      <div 
+        className="content-fade-wrapper"
+        style={{ 
+          opacity: contentOpacity,
+          transition: 'opacity 0.3s ease-out'
+        }}
       >
+        <motion.main
+          className="content"
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+        >
         <motion.h1 className="name" variants={itemVariants}>
           Mohamed Chiboub
         </motion.h1>
@@ -80,6 +93,7 @@ function App() {
           </motion.a>
         </motion.nav>
       </motion.main>
+      </div>
     </div>
   );
 }

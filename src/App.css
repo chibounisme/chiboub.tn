@@ -9,10 +9,18 @@
   justify-content: center;
 }
 
+/* Fade wrapper for drift effect */
+.content-fade-wrapper {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Content Container */
 .content {
   position: relative;
-  z-index: 10;
   text-align: center;
   padding: 2rem;
   max-width: 700px;
