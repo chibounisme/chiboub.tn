@@ -478,6 +478,101 @@ export const drawNebulas = (
 };
 
 /**
+ * Draw star clusters
+ */
+export const drawStarClusters = (
+  ctx: CanvasRenderingContext2D,
+  clusters: import('./types').StarCluster[],
+  mouseX: number,
+  mouseY: number,
+  canvasWidth: number,
+  canvasHeight: number,
+  driftOffset: number = 0,
+  driftAmount: number = 0,
+  time: number
+): void => {
+  const halfWidth = canvasWidth * 0.5;
+  const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
+  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
+  
+  for (let c = 0; c < clusters.length; c++) {
+    const cluster = clusters[c];
+    const { x, y, size, brightness, stars, color, parallaxFactor, rotation } = cluster;
+    
+    // Calculate initial position properties relative to center
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
+    
+    // Determine initial phase from static position
+    const initialPhase = dist / maxDist;
+    
+    // Constant speed
+    const speed = 0.15; // Slightly faster than galaxies
+    
+    // Calculate current phase
+    const depthPhase = (initialPhase + driftOffset * speed) % 1;
+    
+    // Linear motion
+    const travelDist = maxDist * depthPhase;
+    
+    // Calculate new position
+    const drawX = centerX + Math.cos(angle) * travelDist;
+    const drawY = centerY + Math.sin(angle) * travelDist;
+    
+    // Skip if off-screen
+    if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
+      continue;
+    }
+    
+    // Size: slight scaling
+    const depthSize = 0.5 + depthPhase * 1.0;
+    const sizeMultiplier = depthSize;
+    
+    // Alpha: fade in/out
+    let depthAlpha = 1;
+    if (depthPhase < 0.3) {
+      depthAlpha = depthPhase / 0.3;
+    } else if (depthPhase > 0.95) {
+      depthAlpha = (1 - depthPhase) / 0.05;
+    }
+    const effectiveBrightness = brightness * depthAlpha;
+    
+    ctx.save();
+    ctx.translate(drawX, drawY);
+    ctx.rotate(rotation);
+    ctx.scale(sizeMultiplier, sizeMultiplier);
+    
+    // Draw cluster glow
+    const glowRadius = size * 1.2;
+    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius);
+    glow.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${effectiveBrightness * 0.15})`);
+    glow.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
+    ctx.fill();
+    
+    // Draw stars
+    for (let s = 0; s < stars.length; s++) {
+      const star = stars[s];
+      const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.3 + 0.7;
+      const alpha = effectiveBrightness * star.brightness * twinkle;
+      
+      ctx.beginPath();
+      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${star.color.r}, ${star.color.g}, ${star.color.b}, ${alpha})`;
+      ctx.fill();
+    }
+    
+    ctx.restore();
+  }
+};
+
+/**
  * Draw the background gradient
  */
 export const drawBackground = (
