@@ -10,6 +10,7 @@ interface Star {
   twinkleSpeed: number;
   twinkleOffset: number;
   color: { r: number; g: number; b: number };
+  parallaxFactor: number; // depth layer for parallax
 }
 
 interface ShootingStar {
@@ -23,6 +24,7 @@ interface ShootingStar {
   decay: number;
   size: number;
   color: { r: number; g: number; b: number };
+  parallaxFactor: number;
 }
 
 interface Galaxy {
@@ -32,7 +34,14 @@ interface Galaxy {
   rotation: number;
   brightness: number;
   arms: number;
-  color: { r: number; g: number; b: number };
+  armTightness: number; // How tightly wound the spiral is
+  armSpread: number; // How spread out the arms are
+  coreSize: number; // Size of the central core
+  coreColor: { r: number; g: number; b: number };
+  armColor: { r: number; g: number; b: number };
+  outerColor: { r: number; g: number; b: number };
+  parallaxFactor: number;
+  armPoints: { t: number; offset: number; dotSize: number }[][]; // Pre-generated arm points
 }
 
 interface Nebula {
@@ -42,7 +51,17 @@ interface Nebula {
   brightness: number;
   color1: { r: number; g: number; b: number };
   color2: { r: number; g: number; b: number };
-  shape: number; // 0-1 for shape variation
+  color3: { r: number; g: number; b: number };
+  shape: number;
+  rotation: number;
+  noiseSeeds: number[];
+  dustLanes: { angle: number; width: number; offset: number }[];
+  layers: { offsetX: number; offsetY: number; scale: number; opacity: number }[];
+  // Pre-generated data to avoid flickering
+  blobs: { angle: number; dist: number; size: number }[][];
+  filaments: { startAngle: number; endAngle: number; startDist: number; endDist: number; ctrlX: number; ctrlY: number; lineWidth: number; colorIndex: number }[];
+  dustParticles: { angle: number; dist: number; colorIndex: number; alpha: number; size: number }[];
+  parallaxFactor: number;
 }
 
 // Realistic star colors based on stellar classification (temperature)
@@ -85,20 +104,49 @@ const getRandomShootingStarColor = () => {
   return shootingStarColors[Math.floor(Math.random() * shootingStarColors.length)];
 };
 
-// Galaxy colors
-const galaxyColors = [
-  { r: 200, g: 180, b: 255 }, // Purple-ish
-  { r: 255, g: 220, b: 180 }, // Warm yellow
-  { r: 180, g: 200, b: 255 }, // Blue-ish
-  { r: 255, g: 200, b: 200 }, // Pink-ish
-];
+// Generate random galaxy color with natural hue variation
+const getRandomGalaxyColor = () => {
+  // Galaxies have warm yellows, cool blues, or purple hues
+  const hueType = Math.random();
+  let r: number, g: number, b: number;
+  
+  if (hueType < 0.4) {
+    // Warm yellow/orange tones
+    r = 200 + Math.floor(Math.random() * 55);
+    g = 180 + Math.floor(Math.random() * 60);
+    b = 150 + Math.floor(Math.random() * 80);
+  } else if (hueType < 0.7) {
+    // Cool blue tones
+    r = 150 + Math.floor(Math.random() * 60);
+    g = 180 + Math.floor(Math.random() * 60);
+    b = 220 + Math.floor(Math.random() * 35);
+  } else {
+    // Purple/pink tones
+    r = 180 + Math.floor(Math.random() * 75);
+    g = 150 + Math.floor(Math.random() * 60);
+    b = 200 + Math.floor(Math.random() * 55);
+  }
+  
+  return { r, g, b };
+};
 
-// Nebula color pairs
-const nebulaColorPairs = [
-  [{ r: 100, g: 50, b: 150 }, { r: 200, g: 100, b: 180 }],   // Purple/Pink
-  [{ r: 50, g: 80, b: 150 }, { r: 100, g: 150, b: 200 }],    // Blue
-  [{ r: 150, g: 80, b: 80 }, { r: 200, g: 120, b: 100 }],    // Red/Orange
-  [{ r: 50, g: 100, b: 100 }, { r: 100, g: 180, b: 150 }],   // Teal/Green
+// Generate a color variation from a base color
+const varyColor = (base: { r: number; g: number; b: number }, variance: number) => {
+  return {
+    r: Math.min(255, Math.max(0, base.r + Math.floor((Math.random() - 0.5) * variance))),
+    g: Math.min(255, Math.max(0, base.g + Math.floor((Math.random() - 0.5) * variance))),
+    b: Math.min(255, Math.max(0, base.b + Math.floor((Math.random() - 0.5) * variance))),
+  };
+};
+
+// Nebula color triplets (for more realistic multi-hue nebulas)
+const nebulaColorTriplets = [
+  [{ r: 80, g: 40, b: 120 }, { r: 180, g: 80, b: 160 }, { r: 255, g: 150, b: 200 }],   // Purple/Magenta/Pink
+  [{ r: 30, g: 60, b: 120 }, { r: 80, g: 130, b: 180 }, { r: 150, g: 200, b: 255 }],   // Deep Blue/Teal/Cyan
+  [{ r: 120, g: 50, b: 50 }, { r: 180, g: 80, b: 60 }, { r: 255, g: 140, b: 100 }],    // Crimson/Orange/Salmon
+  [{ r: 40, g: 80, b: 80 }, { r: 80, g: 150, b: 130 }, { r: 140, g: 200, b: 180 }],    // Deep Teal/Sea Green
+  [{ r: 60, g: 40, b: 100 }, { r: 100, g: 60, b: 140 }, { r: 180, g: 120, b: 200 }],   // Violet/Lavender
+  [{ r: 100, g: 60, b: 80 }, { r: 150, g: 100, b: 120 }, { r: 200, g: 160, b: 180 }],  // Dusty Rose
 ];
 
 const StarField: FC = () => {
@@ -119,6 +167,18 @@ const StarField: FC = () => {
     let time = 0;
     let lastTimestamp = 0;
     let nextShootingStarTime = 5 + Math.random() * 10; // First one between 5-15 seconds
+    
+    // Mouse position for parallax effect
+    let mouseX = 0;
+    let mouseY = 0;
+    let targetMouseX = 0;
+    let targetMouseY = 0;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      // Normalize mouse position to -1 to 1 range from center
+      targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+      targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+    };
 
     const getNextShootingStarDelay = (): number => {
       return 5 + Math.random() * 10; // Random delay between 5 and 15 seconds
@@ -135,32 +195,165 @@ const StarField: FC = () => {
       galaxies = [];
       nebulas = [];
       
-      // Add 2-4 small galaxies
+      // Add 2-4 small galaxies with unique colors and shapes
       const numGalaxies = 2 + Math.floor(Math.random() * 3);
       for (let i = 0; i < numGalaxies; i++) {
+        const baseColor = getRandomGalaxyColor();
+        const numArms = 2 + Math.floor(Math.random() * 4); // 2-5 arms
+        const galaxySize = 20 + Math.random() * 40;
+        
+        // Pre-generate arm points for consistent rendering
+        const armPoints: { t: number; offset: number; dotSize: number }[][] = [];
+        const numPointsPerArm = 25 + Math.floor(Math.random() * 20);
+        
+        for (let arm = 0; arm < numArms; arm++) {
+          const points: { t: number; offset: number; dotSize: number }[] = [];
+          for (let p = 0; p < numPointsPerArm; p++) {
+            const t = p / numPointsPerArm;
+            points.push({
+              t,
+              offset: (Math.random() - 0.5) * 8 * t, // Random perpendicular offset
+              dotSize: (1 - t) * (2 + Math.random() * 2) + 0.3,
+            });
+          }
+          armPoints.push(points);
+        }
+        
         galaxies.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: 20 + Math.random() * 40,
+          size: galaxySize,
           rotation: Math.random() * Math.PI * 2,
           brightness: 0.03 + Math.random() * 0.05,
-          arms: 2 + Math.floor(Math.random() * 3),
-          color: galaxyColors[Math.floor(Math.random() * galaxyColors.length)],
+          arms: numArms,
+          armTightness: 1.0 + Math.random() * 1.5, // How many rotations the spiral makes
+          armSpread: 0.3 + Math.random() * 0.3, // Flattening factor (0.3-0.6)
+          coreSize: 0.2 + Math.random() * 0.2, // Core size as fraction of total
+          coreColor: varyColor(baseColor, 30),
+          armColor: varyColor(baseColor, 50),
+          outerColor: varyColor(baseColor, 70),
+          parallaxFactor: 0.02 + Math.random() * 0.03,
+          armPoints,
         });
       }
       
-      // Add 2-4 nebulas
-      const numNebulas = 2 + Math.floor(Math.random() * 3);
+      // Add 3-5 nebulas with more complex structure
+      const numNebulas = 3 + Math.floor(Math.random() * 3);
       for (let i = 0; i < numNebulas; i++) {
-        const colorPair = nebulaColorPairs[Math.floor(Math.random() * nebulaColorPairs.length)];
+        const colorTriplet = nebulaColorTriplets[Math.floor(Math.random() * nebulaColorTriplets.length)];
+        const nebulaSize = 150 + Math.random() * 300;
+        const noiseSeeds = Array.from({ length: 8 }, () => Math.random() * 1000);
+        
+        // Create multiple layers for depth
+        const numLayers = 4 + Math.floor(Math.random() * 4);
+        const layers = [];
+        const blobs: { angle: number; dist: number; size: number }[][] = [];
+        
+        for (let l = 0; l < numLayers; l++) {
+          const layerScale = 0.4 + Math.random() * 0.8;
+          const layerSize = nebulaSize * layerScale;
+          const seed = noiseSeeds[l % noiseSeeds.length];
+          
+          layers.push({
+            offsetX: (Math.random() - 0.5) * nebulaSize * 0.6,
+            offsetY: (Math.random() - 0.5) * nebulaSize * 0.6,
+            scale: layerScale,
+            opacity: 0.3 + Math.random() * 0.5,
+          });
+          
+          // Pre-generate blobs for this layer
+          const numBlobs = 5 + Math.floor(Math.random() * 4);
+          const layerBlobs = [];
+          for (let b = 0; b < numBlobs; b++) {
+            const angle = (b / numBlobs) * Math.PI * 2 + seed;
+            // Simple noise calculation
+            const n1 = Math.sin(b * 50 * 0.01 + seed) * Math.cos(seed * 10 * 0.01 + seed * 0.7);
+            const n2 = Math.sin(b * 50 * 0.02 - seed * 0.3) * Math.sin(seed * 10 * 0.015 + seed * 0.5);
+            const n3 = Math.cos(b * 50 * 0.008 + seed * 10 * 0.008 + seed * 0.2) * 0.5;
+            const noise1 = (n1 + n2 + n3 + 2) / 4;
+            
+            const n4 = Math.sin(b * 30 * 0.01 + seed) * Math.cos(b * 20 * 0.01 + seed * 0.7);
+            const n5 = Math.sin(b * 30 * 0.02 - seed * 0.3) * Math.sin(b * 20 * 0.015 + seed * 0.5);
+            const n6 = Math.cos(b * 30 * 0.008 + b * 20 * 0.008 + seed * 0.2) * 0.5;
+            const noise2 = (n4 + n5 + n6 + 2) / 4;
+            
+            layerBlobs.push({
+              angle,
+              dist: layerSize * 0.3 * noise1,
+              size: layerSize * (0.3 + noise2 * 0.5),
+            });
+          }
+          blobs.push(layerBlobs);
+        }
+        
+        // Create dust lanes for realism
+        const numDustLanes = 1 + Math.floor(Math.random() * 3);
+        const dustLanes = [];
+        for (let d = 0; d < numDustLanes; d++) {
+          dustLanes.push({
+            angle: Math.random() * Math.PI * 2,
+            width: 0.1 + Math.random() * 0.2,
+            offset: (Math.random() - 0.5) * 0.5,
+          });
+        }
+        
+        // Pre-generate filaments
+        const numFilaments = 3 + Math.floor(Math.random() * 3);
+        const filaments = [];
+        for (let f = 0; f < numFilaments; f++) {
+          const startAngle = (f / numFilaments) * Math.PI * 2;
+          const endAngle = startAngle + Math.PI * (0.5 + Math.random() * 0.5);
+          const startDist = nebulaSize * 0.2;
+          const endDist = nebulaSize * (0.4 + Math.random() * 0.3);
+          const startX = Math.cos(startAngle) * startDist;
+          const startY = Math.sin(startAngle) * startDist * 0.6;
+          const endX = Math.cos(endAngle) * endDist;
+          const endY = Math.sin(endAngle) * endDist * 0.6;
+          
+          filaments.push({
+            startAngle,
+            endAngle,
+            startDist,
+            endDist,
+            ctrlX: (startX + endX) / 2 + (Math.random() - 0.5) * nebulaSize * 0.3,
+            ctrlY: (startY + endY) / 2 + (Math.random() - 0.5) * nebulaSize * 0.2,
+            lineWidth: 2 + Math.random() * 6,
+            colorIndex: f % 2,
+          });
+        }
+        
+        // Pre-generate dust particles
+        const numDustParticles = Math.floor(nebulaSize / 3);
+        const dustParticles = [];
+        for (let d = 0; d < numDustParticles; d++) {
+          const pAngle = Math.random() * Math.PI * 2;
+          const pDist = Math.random() * nebulaSize * 0.9;
+          dustParticles.push({
+            angle: pAngle,
+            dist: pDist,
+            colorIndex: Math.random() < 0.5 ? 0 : 1,
+            alpha: 0.2 + Math.random() * 0.4,
+            size: 0.5 + Math.random() * 2,
+          });
+        }
+        
         nebulas.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: 80 + Math.random() * 150,
-          brightness: 0.02 + Math.random() * 0.04,
-          color1: colorPair[0],
-          color2: colorPair[1],
+          size: nebulaSize,
+          brightness: 0.015 + Math.random() * 0.025,
+          color1: colorTriplet[0],
+          color2: colorTriplet[1],
+          color3: colorTriplet[2],
           shape: Math.random(),
+          rotation: Math.random() * Math.PI * 2,
+          noiseSeeds,
+          dustLanes,
+          layers,
+          blobs,
+          filaments,
+          dustParticles,
+          parallaxFactor: 0.01 + Math.random() * 0.02, // Very subtle for nebulas
         });
       }
     };
@@ -170,85 +363,209 @@ const StarField: FC = () => {
       const numStars = Math.floor((canvas.width * canvas.height) / 2500);
       
       for (let i = 0; i < numStars; i++) {
+        // Parallax factor based on star size (smaller = further = less parallax)
+        const size = Math.random() * 1.8 + 0.3;
+        const parallaxFactor = 0.02 + (size / 2.1) * 0.08; // Range: 0.02 to 0.10
+        
         stars.push({
           x: Math.random() * canvas.width,
           y: Math.random() * canvas.height,
-          size: Math.random() * 1.8 + 0.3,
+          size,
           brightness: Math.random() * 0.7 + 0.3,
           twinkleSpeed: Math.random() * 0.04 + 0.01,
           twinkleOffset: Math.random() * Math.PI * 2,
           color: getRandomStarColor(),
+          parallaxFactor,
         });
       }
     };
 
     const drawNebulas = () => {
       nebulas.forEach((nebula) => {
-        const { x, y, size, brightness, color1, color2, shape } = nebula;
+        const { x, y, size, brightness, color1, color2, color3, rotation, dustLanes, layers, blobs, filaments, dustParticles, parallaxFactor } = nebula;
         
-        // Draw nebula as multiple overlapping gradients
-        for (let i = 0; i < 3; i++) {
-          const offsetX = (Math.sin(shape * Math.PI * 2 + i) * size * 0.3);
-          const offsetY = (Math.cos(shape * Math.PI * 2 + i) * size * 0.2);
-          const layerSize = size * (0.6 + i * 0.2);
+        // Apply parallax offset
+        const parallaxX = mouseX * parallaxFactor * canvas.width * 0.5;
+        const parallaxY = mouseY * parallaxFactor * canvas.height * 0.5;
+        
+        ctx.save();
+        ctx.translate(x + parallaxX, y + parallaxY);
+        ctx.rotate(rotation);
+        
+        // Draw multiple cloud-like layers for each nebula (using pre-generated blobs)
+        layers.forEach((layer, layerIndex) => {
+          const { offsetX, offsetY, opacity } = layer;
           
-          const gradient = ctx.createRadialGradient(
-            x + offsetX, y + offsetY, 0,
-            x + offsetX, y + offsetY, layerSize
-          );
+          // Choose color based on layer depth
+          const colorIndex = layerIndex % 3;
+          const color = colorIndex === 0 ? color1 : colorIndex === 1 ? color2 : color3;
           
-          const color = i % 2 === 0 ? color1 : color2;
-          gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${brightness * 1.5})`);
-          gradient.addColorStop(0.3, `rgba(${color.r}, ${color.g}, ${color.b}, ${brightness})`);
-          gradient.addColorStop(0.7, `rgba(${color.r}, ${color.g}, ${color.b}, ${brightness * 0.3})`);
-          gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+          // Use pre-generated blobs for this layer
+          const layerBlobs = blobs[layerIndex] || [];
+          layerBlobs.forEach((blob) => {
+            const blobX = offsetX + Math.cos(blob.angle) * blob.dist;
+            const blobY = offsetY + Math.sin(blob.angle) * blob.dist * 0.6;
+            
+            // Main blob gradient
+            const gradient = ctx.createRadialGradient(
+              blobX, blobY, 0,
+              blobX, blobY, blob.size
+            );
+            
+            const alpha = brightness * opacity;
+            gradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.8})`);
+            gradient.addColorStop(0.2, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.5})`);
+            gradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.25})`);
+            gradient.addColorStop(0.75, `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha * 0.1})`);
+            gradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+            
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(blobX, blobY, blob.size, 0, Math.PI * 2);
+            ctx.fill();
+          });
+        });
+        
+        // Draw wispy filaments using pre-generated data
+        filaments.forEach((filament) => {
+          const startX = Math.cos(filament.startAngle) * filament.startDist;
+          const startY = Math.sin(filament.startAngle) * filament.startDist * 0.6;
+          const endX = Math.cos(filament.endAngle) * filament.endDist;
+          const endY = Math.sin(filament.endAngle) * filament.endDist * 0.6;
           
-          ctx.fillStyle = gradient;
+          const filamentGradient = ctx.createLinearGradient(startX, startY, endX, endY);
+          const filamentColor = filament.colorIndex === 0 ? color2 : color3;
+          filamentGradient.addColorStop(0, `rgba(${filamentColor.r}, ${filamentColor.g}, ${filamentColor.b}, 0)`);
+          filamentGradient.addColorStop(0.3, `rgba(${filamentColor.r}, ${filamentColor.g}, ${filamentColor.b}, ${brightness * 0.4})`);
+          filamentGradient.addColorStop(0.7, `rgba(${filamentColor.r}, ${filamentColor.g}, ${filamentColor.b}, ${brightness * 0.4})`);
+          filamentGradient.addColorStop(1, `rgba(${filamentColor.r}, ${filamentColor.g}, ${filamentColor.b}, 0)`);
+          
+          ctx.strokeStyle = filamentGradient;
+          ctx.lineWidth = filament.lineWidth;
+          ctx.lineCap = 'round';
+          ctx.globalAlpha = 0.3;
+          
           ctx.beginPath();
-          ctx.arc(x + offsetX, y + offsetY, layerSize, 0, Math.PI * 2);
+          ctx.moveTo(startX, startY);
+          ctx.quadraticCurveTo(filament.ctrlX, filament.ctrlY, endX, endY);
+          ctx.stroke();
+          
+          ctx.globalAlpha = 1;
+        });
+        
+        // Draw dust lanes (darker regions that add realism)
+        dustLanes.forEach((lane) => {
+          const { angle, width, offset } = lane;
+          const laneLength = size * 1.2;
+          const laneWidth = size * width;
+          
+          const laneX = Math.cos(angle) * size * offset;
+          const laneY = Math.sin(angle) * size * offset * 0.6;
+          
+          ctx.save();
+          ctx.translate(laneX, laneY);
+          ctx.rotate(angle);
+          
+          // Dark dust lane gradient
+          const dustGradient = ctx.createLinearGradient(0, -laneWidth, 0, laneWidth);
+          dustGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+          dustGradient.addColorStop(0.3, 'rgba(0, 0, 0, 0.03)');
+          dustGradient.addColorStop(0.5, 'rgba(0, 0, 0, 0.05)');
+          dustGradient.addColorStop(0.7, 'rgba(0, 0, 0, 0.03)');
+          dustGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          
+          ctx.fillStyle = dustGradient;
+          ctx.fillRect(-laneLength / 2, -laneWidth, laneLength, laneWidth * 2);
+          
+          ctx.restore();
+        });
+        
+        // Draw scattered dust particles using pre-generated data
+        dustParticles.forEach((particle) => {
+          const px = Math.cos(particle.angle) * particle.dist;
+          const py = Math.sin(particle.angle) * particle.dist * 0.7;
+          
+          const dustColor = particle.colorIndex === 0 ? color2 : color3;
+          const dustAlpha = brightness * particle.alpha * (1 - particle.dist / size);
+          
+          ctx.beginPath();
+          ctx.arc(px, py, particle.size, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(${dustColor.r}, ${dustColor.g}, ${dustColor.b}, ${dustAlpha})`;
           ctx.fill();
-        }
+        });
+        
+        // Central glow (star-forming region)
+        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.25);
+        coreGradient.addColorStop(0, `rgba(${color3.r}, ${color3.g}, ${color3.b}, ${brightness * 1.5})`);
+        coreGradient.addColorStop(0.3, `rgba(${color2.r}, ${color2.g}, ${color2.b}, ${brightness * 0.8})`);
+        coreGradient.addColorStop(0.6, `rgba(${color1.r}, ${color1.g}, ${color1.b}, ${brightness * 0.3})`);
+        coreGradient.addColorStop(1, `rgba(${color1.r}, ${color1.g}, ${color1.b}, 0)`);
+        
+        ctx.fillStyle = coreGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, size * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        
+        ctx.restore();
       });
     };
 
     const drawGalaxies = () => {
       galaxies.forEach((galaxy) => {
-        const { x, y, size, rotation, brightness, arms, color } = galaxy;
+        const { x, y, size, rotation, brightness, arms, armTightness, armSpread, coreSize, coreColor, armColor, outerColor, parallaxFactor, armPoints } = galaxy;
+        
+        // Apply parallax offset
+        const parallaxX = mouseX * parallaxFactor * canvas.width * 0.5;
+        const parallaxY = mouseY * parallaxFactor * canvas.height * 0.5;
         
         ctx.save();
-        ctx.translate(x, y);
+        ctx.translate(x + parallaxX, y + parallaxY);
         ctx.rotate(rotation);
         
-        // Draw galaxy core
-        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.3);
-        coreGradient.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${brightness * 3})`);
-        coreGradient.addColorStop(0.5, `rgba(${color.r}, ${color.g}, ${color.b}, ${brightness * 1.5})`);
-        coreGradient.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
+        // Draw galaxy core with gradient from core color to arm color
+        const coreRadius = size * coreSize;
+        const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius);
+        coreGradient.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 3})`);
+        coreGradient.addColorStop(0.5, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${brightness * 1.5})`);
+        coreGradient.addColorStop(1, `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, 0)`);
         
         ctx.fillStyle = coreGradient;
         ctx.beginPath();
-        ctx.arc(0, 0, size * 0.3, 0, Math.PI * 2);
+        ctx.arc(0, 0, coreRadius, 0, Math.PI * 2);
         ctx.fill();
         
-        // Draw spiral arms
-        for (let arm = 0; arm < arms; arm++) {
-          const armRotation = (arm / arms) * Math.PI * 2;
+        // Draw spiral arms using pre-generated points
+        for (let armIndex = 0; armIndex < arms; armIndex++) {
+          const armRotation = (armIndex / arms) * Math.PI * 2;
+          const points = armPoints[armIndex] || [];
           
-          for (let i = 0; i < 30; i++) {
-            const t = i / 30;
-            const spiralAngle = armRotation + t * Math.PI * 1.5;
+          points.forEach((point) => {
+            const { t, offset, dotSize } = point;
+            const spiralAngle = armRotation + t * Math.PI * armTightness;
             const distance = t * size;
-            const armX = Math.cos(spiralAngle) * distance;
-            const armY = Math.sin(spiralAngle) * distance * 0.4; // Flatten for perspective
             
-            const dotSize = (1 - t) * 3 + 0.5;
+            // Calculate base position on spiral
+            const baseX = Math.cos(spiralAngle) * distance;
+            const baseY = Math.sin(spiralAngle) * distance * armSpread;
+            
+            // Add perpendicular offset for natural variation
+            const perpAngle = spiralAngle + Math.PI / 2;
+            const armX = baseX + Math.cos(perpAngle) * offset;
+            const armY = baseY + Math.sin(perpAngle) * offset * armSpread;
+            
+            // Blend color from arm color (inner) to outer color (outer)
+            const colorBlend = t;
+            const r = Math.floor(armColor.r * (1 - colorBlend) + outerColor.r * colorBlend);
+            const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
+            const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
+            
             const alpha = brightness * (1 - t * 0.7);
             
             ctx.beginPath();
             ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
             ctx.fill();
-          }
+          });
         }
         
         ctx.restore();
@@ -303,6 +620,7 @@ const StarField: FC = () => {
         decay: 0.003 + Math.random() * 0.012,
         size: 1 + Math.random() * 2,
         color: getRandomShootingStarColor(),
+        parallaxFactor: 0.08 + Math.random() * 0.04, // Shooting stars are close, so more parallax
       });
     };
 
@@ -312,16 +630,22 @@ const StarField: FC = () => {
         const alpha = star.brightness * twinkle;
         const { r, g, b } = star.color;
         
+        // Apply parallax offset based on star's depth
+        const parallaxX = mouseX * star.parallaxFactor * canvas.width * 0.5;
+        const parallaxY = mouseY * star.parallaxFactor * canvas.height * 0.5;
+        const drawX = star.x + parallaxX;
+        const drawY = star.y + parallaxY;
+        
         // Draw star core
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         ctx.fill();
         
         // Add glow for brighter stars
         if (star.brightness > 0.6) {
           ctx.beginPath();
-          ctx.arc(star.x, star.y, star.size * 2.5, 0, Math.PI * 2);
+          ctx.arc(drawX, drawY, star.size * 2.5, 0, Math.PI * 2);
           ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.15})`;
           ctx.fill();
         }
@@ -340,12 +664,18 @@ const StarField: FC = () => {
         const alpha = star.brightness * star.life;
         const { r, g, b } = star.color;
         
-        // Calculate tail end position
-        const tailX = star.x - Math.cos(star.angle) * star.length;
-        const tailY = star.y - Math.sin(star.angle) * star.length;
+        // Apply parallax offset for shooting stars
+        const parallaxX = mouseX * star.parallaxFactor * canvas.width * 0.5;
+        const parallaxY = mouseY * star.parallaxFactor * canvas.height * 0.5;
+        const drawX = star.x + parallaxX;
+        const drawY = star.y + parallaxY;
+        
+        // Calculate tail end position with parallax
+        const tailX = drawX - Math.cos(star.angle) * star.length;
+        const tailY = drawY - Math.sin(star.angle) * star.length;
 
         // Draw the shooting star with gradient tail
-        const gradient = ctx.createLinearGradient(tailX, tailY, star.x, star.y);
+        const gradient = ctx.createLinearGradient(tailX, tailY, drawX, drawY);
         gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0)`);
         gradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, ${alpha * 0.3})`);
         gradient.addColorStop(0.9, `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`);
@@ -353,7 +683,7 @@ const StarField: FC = () => {
 
         ctx.beginPath();
         ctx.moveTo(tailX, tailY);
-        ctx.lineTo(star.x, star.y);
+        ctx.lineTo(drawX, drawY);
         ctx.strokeStyle = gradient;
         ctx.lineWidth = star.size;
         ctx.lineCap = 'round';
@@ -361,17 +691,17 @@ const StarField: FC = () => {
 
         // Bright head
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
         ctx.fill();
 
         // Glow around head
-        const glowGradient = ctx.createRadialGradient(star.x, star.y, 0, star.x, star.y, star.size * 5);
+        const glowGradient = ctx.createRadialGradient(drawX, drawY, 0, drawX, drawY, star.size * 5);
         glowGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha * 0.6})`);
         glowGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
         ctx.fillStyle = glowGradient;
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size * 5, 0, Math.PI * 2);
+        ctx.arc(drawX, drawY, star.size * 5, 0, Math.PI * 2);
         ctx.fill();
       });
     };
@@ -382,6 +712,11 @@ const StarField: FC = () => {
       const deltaTime = (timestamp - lastTimestamp) / 1000;
       lastTimestamp = timestamp;
       time += deltaTime;
+      
+      // Smoothly interpolate mouse position for parallax (easing)
+      const lerpFactor = 0.05;
+      mouseX += (targetMouseX - mouseX) * lerpFactor;
+      mouseY += (targetMouseY - mouseY) * lerpFactor;
 
       // Deep space background
       const bgGradient = ctx.createRadialGradient(
@@ -413,11 +748,13 @@ const StarField: FC = () => {
 
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('mousemove', handleMouseMove);
     
     animationFrameId = requestAnimationFrame(animate);
 
     return () => {
       window.removeEventListener('resize', resizeCanvas);
+      window.removeEventListener('mousemove', handleMouseMove);
       cancelAnimationFrame(animationFrameId);
     };
   }, []);
