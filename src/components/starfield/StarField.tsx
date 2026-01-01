@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { FC } from 'react';
-import type { Star, ShootingStar, Galaxy, Nebula, StarCluster } from './types';
-import { initStars, initGalaxies, initNebulas, initStarClusters, createShootingStar, getNextShootingStarDelay } from './generators';
-import { drawStars, drawShootingStars, drawGalaxies, drawNebulas, drawStarClusters, drawBackground } from './drawFunctions';
+import type { Star, ShootingStar, Galaxy, Nebula } from './types';
+import { initStars, initGalaxies, initNebulas, createShootingStar, getNextShootingStarDelay } from './generators';
+import { drawStars, drawShootingStars, drawGalaxies, drawNebulas, drawBackground } from './drawFunctions';
 import './StarField.css';
 
 // Autopilot/drift configuration
@@ -42,7 +42,6 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     let shootingStars: ShootingStar[] = [];
     let galaxies: Galaxy[] = [];
     let nebulas: Nebula[] = [];
-    let clusters: StarCluster[] = [];
     let time = 0;
     let lastTimestamp = 0;
     let nextShootingStarTime = 5 + Math.random() * 10;
@@ -72,7 +71,6 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       canvas.height = window.innerHeight;
       galaxies = initGalaxies(canvas.width, canvas.height);
       nebulas = initNebulas(canvas.width, canvas.height);
-      clusters = initStarClusters(canvas.width, canvas.height);
       stars = initStars(canvas.width, canvas.height);
     };
 
@@ -125,7 +123,6 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       // Draw celestial objects (back to front) with drift parameters
       drawNebulas(ctx, nebulas, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
       drawGalaxies(ctx, galaxies, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
-      drawStarClusters(ctx, clusters, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
       drawStars(ctx, stars, time, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
       
       // Only show shooting stars when not in space travel mode
