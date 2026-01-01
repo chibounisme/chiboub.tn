@@ -28,10 +28,10 @@ function App() {
   };
 
   const socialVariants = {
-    hidden: { opacity: 0, scale: 0.8 },
+    hidden: { opacity: 0, y: 10 },
     visible: {
       opacity: 1,
-      scale: 1,
+      y: 0,
       transition: {
         duration: 0.5,
         ease: 'easeOut',
@@ -49,21 +49,12 @@ function App() {
         initial="hidden"
         animate="visible"
       >
-        <motion.p className="greeting" variants={itemVariants}>
-          Welcome to my universe
-        </motion.p>
         <motion.h1 className="name" variants={itemVariants}>
           Mohamed Chiboub
         </motion.h1>
         <motion.h2 className="title" variants={itemVariants}>
           Software Engineer
         </motion.h2>
-        <motion.p className="description" variants={itemVariants}>
-          Crafting elegant solutions to complex problems. 
-          Passionate about building scalable applications 
-          and pushing the boundaries of what's possible with code.
-        </motion.p>
-        
         <motion.nav 
           className="social-links"
           variants={itemVariants}
@@ -104,15 +95,6 @@ function App() {
           </motion.a>
         </motion.nav>
       </motion.main>
-      
-      <motion.footer 
-        className="footer"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 1 }}
-      >
-        chiboub.tn
-      </motion.footer>
     </div>
   );
 }

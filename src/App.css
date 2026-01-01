@@ -19,19 +19,9 @@
 }
 
 /* Typography */
-.greeting {
-  font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(0.7rem, 1.2vw, 0.85rem);
-  font-weight: 400;
-  letter-spacing: 0.35em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.4);
-  margin-bottom: 1.5rem;
-}
-
 .name {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(3rem, 8vw, 6rem);
+  font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1.05;
@@ -46,16 +36,6 @@
   color: rgba(255, 255, 255, 0.5);
   margin-bottom: 2rem;
   letter-spacing: 0.02em;
-}
-
-.description {
-  font-family: 'Inter', sans-serif;
-  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
-  font-weight: 300;
-  color: rgba(255, 255, 255, 0.4);
-  max-width: 480px;
-  margin: 0 auto 3rem;
-  line-height: 1.8;
 }
 
 /* Social Links */
@@ -91,27 +71,10 @@
   height: 18px;
 }
 
-/* Footer */
-.footer {
-  position: absolute;
-  bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 10;
-  font-family: 'Inter', sans-serif;
-  font-size: 0.7rem;
-  color: rgba(255, 255, 255, 0.2);
-  letter-spacing: 0.15em;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
   .content {
     padding: 1.5rem;
-  }
-  
-  .description {
-    max-width: 100%;
   }
   
   .social-links {
