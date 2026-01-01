@@ -27,18 +27,6 @@ function App() {
     },
   };
 
-  const socialVariants = {
-    hidden: { opacity: 0, y: 10 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: {
-        duration: 0.5,
-        ease: 'easeOut',
-      },
-    },
-  };
-
   return (
     <div className="app">
       <StarField />
@@ -65,7 +53,6 @@ function App() {
             rel="noopener noreferrer"
             className="social-link"
             aria-label="GitHub Profile"
-            variants={socialVariants}
             whileHover={{ scale: 1.1, y: -3 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -77,7 +64,6 @@ function App() {
             rel="noopener noreferrer"
             className="social-link"
             aria-label="LinkedIn Profile"
-            variants={socialVariants}
             whileHover={{ scale: 1.1, y: -3 }}
             whileTap={{ scale: 0.95 }}
           >
@@ -87,7 +73,6 @@ function App() {
             href="mailto:mohamedchiboub97@gmail.com" 
             className="social-link"
             aria-label="Send Email"
-            variants={socialVariants}
             whileHover={{ scale: 1.1, y: -3 }}
             whileTap={{ scale: 0.95 }}
           >
