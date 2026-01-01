@@ -144,7 +144,17 @@ export const createShootingStar = (width: number, height: number): ShootingStar 
  */
 export const initGalaxies = (width: number, height: number): Galaxy[] => {
   const galaxies: Galaxy[] = [];
-  const numGalaxies = MIN_GALAXIES + Math.floor(Math.random() * (MAX_GALAXIES - MIN_GALAXIES + 1));
+  
+  // Scale galaxy count based on screen area relative to 1080p
+  // Base reference: 1920 * 1080 = 2,073,600 pixels
+  const screenArea = width * height;
+  const referenceArea = 1920 * 1080;
+  const scaleFactor = Math.min(1.5, Math.max(0.3, screenArea / referenceArea));
+  
+  const minG = Math.floor(MIN_GALAXIES * scaleFactor);
+  const maxG = Math.floor(MAX_GALAXIES * scaleFactor);
+  
+  const numGalaxies = minG + Math.floor(Math.random() * (maxG - minG + 1));
   
   for (let i = 0; i < numGalaxies; i++) {
     const [coreColor, armColor, outerColor] = getRandomGalaxyPalette();
@@ -280,7 +290,16 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
  */
 export const initNebulas = (width: number, height: number): Nebula[] => {
   const nebulas: Nebula[] = [];
-  const numNebulas = MIN_NEBULAS + Math.floor(Math.random() * (MAX_NEBULAS - MIN_NEBULAS + 1));
+  
+  // Scale nebula count based on screen area relative to 1080p
+  const screenArea = width * height;
+  const referenceArea = 1920 * 1080;
+  const scaleFactor = Math.min(1.5, Math.max(0.4, screenArea / referenceArea));
+  
+  const minN = Math.floor(MIN_NEBULAS * scaleFactor);
+  const maxN = Math.floor(MAX_NEBULAS * scaleFactor);
+  
+  const numNebulas = minN + Math.floor(Math.random() * (maxN - minN + 1));
   
   for (let i = 0; i < numNebulas; i++) {
     // Select random type and corresponding palette
