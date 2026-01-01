@@ -23,59 +23,47 @@ export const drawStars = (
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
-  const maxRadius = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight) * 1.2;
   
   for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
     
-    // Calculate direction from center (fixed per star)
-    const origDx = star.x - centerX;
-    const origDy = star.y - centerY;
-    const origDist = Math.sqrt(origDx * origDx + origDy * origDy);
+    // Evenly distributed phase based on star's unique twinkleOffset
+    const basePhase = (star.twinkleOffset / (Math.PI * 2)) % 1;
+    const speed = 0.4 + star.parallaxFactor * 1.0;
+    const depthPhase = (basePhase + driftOffset * speed) % 1;
     
-    let drawX: number;
-    let drawY: number;
-    let alpha = star.brightness * twinkle;
-    
-    if (origDist > 1) {
-      const dirX = origDx / origDist;
-      const dirY = origDy / origDist;
-      
-      // Base phase from original distance - this is where star starts
-      const basePhase = origDist / maxRadius;
-      // Speed varies by parallax factor (closer stars move faster)
-      const speed = 0.5 + star.parallaxFactor * 1.5;
-      // Current phase based on accumulated travel (driftOffset is already smoothly accumulated)
-      const depthPhase = (basePhase + driftOffset * speed) % 1;
-      
-      // Position based on current depth phase
-      const travelDist = depthPhase * maxRadius;
-      const baseX = centerX + dirX * travelDist;
-      const baseY = centerY + dirY * travelDist;
-      
-      // Add mouse parallax on top (always active)
-      drawX = baseX + mouseX * star.parallaxFactor * halfWidth;
-      drawY = baseY + mouseY * star.parallaxFactor * halfHeight;
-      
-      // Fade in from center (first 15% of journey)
-      const fadeIn = Math.min(1, depthPhase / 0.15);
-      alpha = star.brightness * twinkle * fadeIn;
-    } else {
-      // Star at center - just apply parallax
-      drawX = star.x + mouseX * star.parallaxFactor * halfWidth;
-      drawY = star.y + mouseY * star.parallaxFactor * halfHeight;
-    }
+    // Stars stay at their original positions (distributed across whole screen)
+    // Add mouse parallax
+    const drawX = star.x + mouseX * star.parallaxFactor * halfWidth;
+    const drawY = star.y + mouseY * star.parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
       continue;
     }
     
+    // Simulate depth: stars "approach" (grow + brighten) then "pass by" (shrink + fade)
+    // depthPhase 0-0.5: approaching (fading in, growing)
+    // depthPhase 0.5-1: passing (fading out, shrinking)
+    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    
+    // Size scales with approach (closer = bigger)
+    const sizeMultiplier = 0.5 + approachPhase * 1.0;
+    const drawSize = star.size * sizeMultiplier;
+    
+    // Alpha: quick fade in/out at edges, full visibility in middle
+    let depthAlpha = 1;
+    if (depthPhase < 0.05) {
+      depthAlpha = depthPhase / 0.05;
+    } else if (depthPhase > 0.95) {
+      depthAlpha = (1 - depthPhase) / 0.05;
+    }
+    
+    const alpha = star.brightness * twinkle * depthAlpha;
+    
     ctx.beginPath();
-    ctx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
+    ctx.arc(drawX, drawY, drawSize, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(${star.color.r}, ${star.color.g}, ${star.color.b}, ${alpha})`;
     ctx.fill();
   }
@@ -145,9 +133,6 @@ export const drawGalaxies = (
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
-  const maxRadius = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight) * 1.3;
   
   for (let g = 0; g < galaxies.length; g++) {
     const galaxy = galaxies[g];
@@ -157,51 +142,40 @@ export const drawGalaxies = (
       parallaxFactor, armPoints, starPoints
     } = galaxy;
     
-    // Calculate direction from center (fixed per galaxy)
-    const origDx = x - centerX;
-    const origDy = y - centerY;
-    const origDist = Math.sqrt(origDx * origDx + origDy * origDy);
+    // Evenly distributed phase based on galaxy's rotation
+    const basePhase = (rotation / (Math.PI * 2)) % 1;
+    const speed = 0.2 + parallaxFactor * 0.5;
+    const depthPhase = (basePhase + driftOffset * speed) % 1;
     
-    let drawX: number;
-    let drawY: number;
-    let effectiveBrightness = brightness;
-    
-    if (origDist > 1) {
-      const dirX = origDx / origDist;
-      const dirY = origDy / origDist;
-      
-      // Base phase from original distance
-      const basePhase = origDist / maxRadius;
-      const speed = 0.2 + parallaxFactor * 0.8;
-      // driftOffset is already smoothly accumulated based on driftAmount
-      const depthPhase = (basePhase + driftOffset * speed) % 1;
-      
-      // Position based on current depth
-      const travelDist = depthPhase * maxRadius;
-      const baseX = centerX + dirX * travelDist;
-      const baseY = centerY + dirY * travelDist;
-      
-      // Add mouse parallax on top
-      drawX = baseX + mouseX * parallaxFactor * halfWidth;
-      drawY = baseY + mouseY * parallaxFactor * halfHeight;
-      
-      // Fade in from center (first 20% of journey)
-      const fadeIn = Math.min(1, depthPhase / 0.2);
-      effectiveBrightness = brightness * fadeIn;
-    } else {
-      drawX = x + mouseX * parallaxFactor * halfWidth;
-      drawY = y + mouseY * parallaxFactor * halfHeight;
-    }
+    // Galaxies stay at their original positions
+    const drawX = x + mouseX * parallaxFactor * halfWidth;
+    const drawY = y + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
     
+    // Simulate depth: galaxies "approach" then "pass by"
+    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    
+    // Size scales with approach
+    const sizeMultiplier = 0.6 + approachPhase * 0.8;
+    const effectiveSize = size * sizeMultiplier;
+    
+    // Alpha: quick fade in/out at edges
+    let depthAlpha = 1;
+    if (depthPhase < 0.05) {
+      depthAlpha = depthPhase / 0.05;
+    } else if (depthPhase > 0.95) {
+      depthAlpha = (1 - depthPhase) / 0.05;
+    }
+    const effectiveBrightness = brightness * depthAlpha;
+    
     ctx.save();
     ctx.translate(drawX, drawY);
     ctx.rotate(rotation);
-    ctx.scale(1, 1 - inclination * 0.85);
+    ctx.scale(sizeMultiplier, sizeMultiplier * (1 - inclination * 0.85));
     
     const coreRadius = size * coreSize;
     
@@ -330,9 +304,6 @@ export const drawNebulas = (
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
-  const maxRadius = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight) * 1.4;
   
   for (let n = 0; n < nebulas.length; n++) {
     const nebula = nebulas[n];
@@ -341,50 +312,39 @@ export const drawNebulas = (
       layers, blobs, filaments, dustParticles, parallaxFactor
     } = nebula;
     
-    // Calculate direction from center (fixed per nebula)
-    const origDx = x - centerX;
-    const origDy = y - centerY;
-    const origDist = Math.sqrt(origDx * origDx + origDy * origDy);
+    // Evenly distributed phase based on nebula's rotation
+    const basePhase = (rotation / (Math.PI * 2)) % 1;
+    const speed = 0.15 + parallaxFactor * 0.4;
+    const depthPhase = (basePhase + driftOffset * speed) % 1;
     
-    let drawX: number;
-    let drawY: number;
-    let effectiveBrightness = brightness;
-    
-    if (origDist > 1) {
-      const dirX = origDx / origDist;
-      const dirY = origDy / origDist;
-      
-      // Base phase from original distance
-      const basePhase = origDist / maxRadius;
-      const speed = 0.15 + parallaxFactor * 0.5;
-      // driftOffset is already smoothly accumulated based on driftAmount
-      const depthPhase = (basePhase + driftOffset * speed) % 1;
-      
-      // Position based on current depth
-      const travelDist = depthPhase * maxRadius;
-      const baseX = centerX + dirX * travelDist;
-      const baseY = centerY + dirY * travelDist;
-      
-      // Add mouse parallax on top
-      drawX = baseX + mouseX * parallaxFactor * halfWidth;
-      drawY = baseY + mouseY * parallaxFactor * halfHeight;
-      
-      // Fade in from center (first 25% of journey)
-      const fadeIn = Math.min(1, depthPhase / 0.25);
-      effectiveBrightness = brightness * fadeIn;
-    } else {
-      drawX = x + mouseX * parallaxFactor * halfWidth;
-      drawY = y + mouseY * parallaxFactor * halfHeight;
-    }
+    // Nebulas stay at their original positions
+    const drawX = x + mouseX * parallaxFactor * halfWidth;
+    const drawY = y + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
     
+    // Simulate depth: nebulas "approach" then "pass by"
+    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    
+    // Size scales with approach
+    const sizeMultiplier = 0.5 + approachPhase * 1.0;
+    
+    // Alpha: quick fade in/out at edges
+    let depthAlpha = 1;
+    if (depthPhase < 0.06) {
+      depthAlpha = depthPhase / 0.06;
+    } else if (depthPhase > 0.94) {
+      depthAlpha = (1 - depthPhase) / 0.06;
+    }
+    const effectiveBrightness = brightness * depthAlpha;
+    
     ctx.save();
     ctx.translate(drawX, drawY);
     ctx.rotate(rotation);
+    ctx.scale(sizeMultiplier, sizeMultiplier);
     
     // Draw layers using simple filled circles with opacity
     for (let li = 0; li < layers.length; li++) {
