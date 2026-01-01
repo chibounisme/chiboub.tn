@@ -23,36 +23,46 @@ export const drawStars = (
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
   
   for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
     
-    // Evenly distributed phase based on star's unique twinkleOffset
+    // Direction from center for outward drift
+    const dx = star.x - centerX;
+    const dy = star.y - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Evenly distributed phase
     const basePhase = (star.twinkleOffset / (Math.PI * 2)) % 1;
     const speed = 0.4 + star.parallaxFactor * 1.0;
     const depthPhase = (basePhase + driftOffset * speed) % 1;
     
-    // Stars stay at their original positions (distributed across whole screen)
-    // Add mouse parallax
-    const drawX = star.x + mouseX * star.parallaxFactor * halfWidth;
-    const drawY = star.y + mouseY * star.parallaxFactor * halfHeight;
+    // Approach phase: 0→1→0 (peaks at 0.5)
+    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    
+    // Outward drift: stars move away from center as they "approach"
+    // Movement amount scales with distance from center and approach phase
+    const driftScale = 0.3 * approachPhase;
+    const driftX = dist > 1 ? (dx / dist) * dist * driftScale : 0;
+    const driftY = dist > 1 ? (dy / dist) * dist * driftScale : 0;
+    
+    // Final position: original + drift + parallax
+    const drawX = star.x + driftX + mouseX * star.parallaxFactor * halfWidth;
+    const drawY = star.y + driftY + mouseY * star.parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
       continue;
     }
     
-    // Simulate depth: stars "approach" (grow + brighten) then "pass by" (shrink + fade)
-    // depthPhase 0-0.5: approaching (fading in, growing)
-    // depthPhase 0.5-1: passing (fading out, shrinking)
-    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
-    
     // Size scales with approach (closer = bigger)
     const sizeMultiplier = 0.5 + approachPhase * 1.0;
     const drawSize = star.size * sizeMultiplier;
     
-    // Alpha: quick fade in/out at edges, full visibility in middle
+    // Alpha: quick fade in/out at cycle edges
     let depthAlpha = 1;
     if (depthPhase < 0.05) {
       depthAlpha = depthPhase / 0.05;
@@ -147,17 +157,27 @@ export const drawGalaxies = (
     const speed = 0.2 + parallaxFactor * 0.5;
     const depthPhase = (basePhase + driftOffset * speed) % 1;
     
-    // Galaxies stay at their original positions
-    const drawX = x + mouseX * parallaxFactor * halfWidth;
-    const drawY = y + mouseY * parallaxFactor * halfHeight;
+    // Direction from center for outward drift
+    const centerX = halfWidth;
+    const centerY = halfHeight;
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Approach phase for movement
+    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    const driftScale = 0.25 * approachPhase;
+    const driftX = dist > 1 ? (dx / dist) * dist * driftScale : 0;
+    const driftY = dist > 1 ? (dy / dist) * dist * driftScale : 0;
+    
+    // Final position: original + drift + parallax
+    const drawX = x + driftX + mouseX * parallaxFactor * halfWidth;
+    const drawY = y + driftY + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
-    
-    // Simulate depth: galaxies "approach" then "pass by"
-    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
     
     // Size scales with approach
     const sizeMultiplier = 0.6 + approachPhase * 0.8;
@@ -317,17 +337,27 @@ export const drawNebulas = (
     const speed = 0.15 + parallaxFactor * 0.4;
     const depthPhase = (basePhase + driftOffset * speed) % 1;
     
-    // Nebulas stay at their original positions
-    const drawX = x + mouseX * parallaxFactor * halfWidth;
-    const drawY = y + mouseY * parallaxFactor * halfHeight;
+    // Direction from center for outward drift
+    const centerX = halfWidth;
+    const centerY = halfHeight;
+    const dx = x - centerX;
+    const dy = y - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    
+    // Approach phase for movement
+    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    const driftScale = 0.25 * approachPhase;
+    const driftX = dist > 1 ? (dx / dist) * dist * driftScale : 0;
+    const driftY = dist > 1 ? (dy / dist) * dist * driftScale : 0;
+    
+    // Final position: original + drift + parallax
+    const drawX = x + driftX + mouseX * parallaxFactor * halfWidth;
+    const drawY = y + driftY + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
-    
-    // Simulate depth: nebulas "approach" then "pass by"
-    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
     
     // Size scales with approach
     const sizeMultiplier = 0.5 + approachPhase * 1.0;
