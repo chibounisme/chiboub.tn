@@ -48,8 +48,8 @@ export const drawStars = (
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
     // Apply perspective curve: stars accelerate as they get closer (move to edge)
-    // Reduced power (1.5) to make distribution less clustered at center
-    const travelDist = maxDist * Math.pow(depthPhase, 1.5);
+    // Power 1.0 (linear) ensures constant speed to avoid fast movement at center
+    const travelDist = maxDist * depthPhase;
     
     // Calculate new position
     const streamX = centerX + Math.cos(angle) * travelDist;
@@ -59,9 +59,9 @@ export const drawStars = (
     const baseX = streamX;
     const baseY = streamY;
     
-    // Add mouse parallax
-    const drawX = baseX + mouseX * star.parallaxFactor * halfWidth;
-    const drawY = baseY + mouseY * star.parallaxFactor * halfHeight;
+    // No parallax
+    const drawX = baseX;
+    const drawY = baseY;
     
     // Skip if off-screen
     if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
@@ -116,8 +116,8 @@ export const drawShootingStars = (
     const alpha = star.brightness * star.life;
     const { r, g, b } = star.color;
     
-    const drawX = star.x + mouseX * star.parallaxFactor * halfWidth;
-    const drawY = star.y + mouseY * star.parallaxFactor * halfHeight;
+    const drawX = star.x;
+    const drawY = star.y;
     
     const tailX = drawX - Math.cos(star.angle) * star.length;
     const tailY = drawY - Math.sin(star.angle) * star.length;
@@ -181,8 +181,8 @@ export const drawGalaxies = (
     // Calculate current phase
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Apply perspective curve (reduced power for less center clustering)
-    const travelDist = maxDist * Math.pow(depthPhase, 1.4);
+    // Apply perspective curve (linear for constant speed)
+    const travelDist = maxDist * depthPhase;
     
     // Calculate new position
     const streamX = centerX + Math.cos(angle) * travelDist;
@@ -192,9 +192,9 @@ export const drawGalaxies = (
     const baseX = streamX;
     const baseY = streamY;
     
-    // Add parallax
-    const drawX = baseX + mouseX * parallaxFactor * halfWidth;
-    const drawY = baseY + mouseY * parallaxFactor * halfHeight;
+    // No parallax
+    const drawX = baseX;
+    const drawY = baseY;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
@@ -364,7 +364,8 @@ export const drawNebulas = (
     const angle = Math.atan2(dy, dx);
     
     // Determine initial phase from static position
-    const initialPhase = Math.sqrt(dist / maxDist);
+    // Inverse of travelDist function: p = r/R (linear)
+    const initialPhase = dist / maxDist;
     
     // Nebulas move slowest (they're the most distant background objects)
     const speed = 0.05 + parallaxFactor * 0.15;
@@ -372,16 +373,16 @@ export const drawNebulas = (
     // Calculate current phase
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Apply perspective curve
-    const travelDist = maxDist * (depthPhase * depthPhase);
+    // Apply perspective curve (linear for constant speed)
+    const travelDist = maxDist * depthPhase;
     
     // Calculate new position
     const streamX = centerX + Math.cos(angle) * travelDist;
     const streamY = centerY + Math.sin(angle) * travelDist;
     
-    // Add parallax
-    const drawX = streamX + mouseX * parallaxFactor * halfWidth;
-    const drawY = streamY + mouseY * parallaxFactor * halfHeight;
+    // No parallax
+    const drawX = streamX;
+    const drawY = streamY;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
