@@ -459,7 +459,7 @@ export const drawNebulas = (
       // Bright core
       ctx.beginPath();
       ctx.arc(sx, sy, star.size * 0.8, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(255, 255, 255, ${star.brightness * 0.9})`;
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${star.brightness * 0.9})`; // Use star color for core too
       ctx.fill();
     }
     
