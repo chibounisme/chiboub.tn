@@ -32,52 +32,39 @@ export const drawStars = (
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
     
     // Use star properties to generate a stable random angle and phase
-    // This decouples the star's position from the rectangular screen bounds,
-    // creating a uniform radial distribution (no "square tunnel" effect)
     const seed = (star.x * 12.9898 + star.y * 78.233) % 1000;
     const angle = (seed / 1000) * Math.PI * 2;
     
-    // Initial phase based on another stable property (twinkleOffset is random)
+    // Initial phase based on another stable property
     const initialPhase = (star.twinkleOffset / (Math.PI * 2)) % 1;
     
-    // Closer stars (higher parallax) move faster through the field
-    const speed = 0.2 + star.parallaxFactor * 0.5;
+    // Constant speed for all stars (no parallax)
+    const speed = 0.2;
     
     // Calculate current phase based on travel
-    // The phase cycles 0->1, representing Z-depth movement from far to near
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Apply perspective curve: stars accelerate as they get closer (move to edge)
-    // Power 1.0 (linear) ensures constant speed to avoid fast movement at center
+    // Linear motion (Constant visual speed)
     const travelDist = maxDist * depthPhase;
     
     // Calculate new position
-    const streamX = centerX + Math.cos(angle) * travelDist;
-    const streamY = centerY + Math.sin(angle) * travelDist;
-    
-    // Always use the stream position (unified 3D coordinate system)
-    const baseX = streamX;
-    const baseY = streamY;
-    
-    // No parallax
-    const drawX = baseX;
-    const drawY = baseY;
+    const drawX = centerX + Math.cos(angle) * travelDist;
+    const drawY = centerY + Math.sin(angle) * travelDist;
     
     // Skip if off-screen
     if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
       continue;
     }
     
-    // Size: scales with depth phase (closer = bigger)
-    // Always apply perspective scaling to maintain consistent 3D world
-    const depthSize = 0.5 + depthPhase * 2.0; // Range: 0.5x to 2.5x
+    // Size: slight scaling to give depth hint without extreme perspective
+    const depthSize = 0.5 + depthPhase * 1.0; 
     const drawSize = star.size * depthSize;
     
-    // Alpha: fade in/out at the ends of the cycle to prevent popping
-    // Always apply fading to avoid hard cuts at center/edge
+    // Alpha: Fade in gradually from center to hide the "source"
+    // This creates the illusion of a tunnel with an open end
     let depthAlpha = 1;
-    if (depthPhase < 0.05) {
-      depthAlpha = depthPhase / 0.05;
+    if (depthPhase < 0.3) {
+      depthAlpha = depthPhase / 0.3;
     } 
     else if (depthPhase > 0.95) {
       depthAlpha = (1 - depthPhase) / 0.05;
@@ -175,40 +162,32 @@ export const drawGalaxies = (
     // Initial phase based on rotation (stable property)
     const initialPhase = (rotation / (Math.PI * 2)) % 1;
     
-    // Galaxies move slower (they're far away background objects)
-    const speed = 0.1 + parallaxFactor * 0.2;
+    // Constant speed
+    const speed = 0.1;
     
     // Calculate current phase
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Apply perspective curve (linear for constant speed)
+    // Linear motion (Constant visual speed)
     const travelDist = maxDist * depthPhase;
     
     // Calculate new position
-    const streamX = centerX + Math.cos(angle) * travelDist;
-    const streamY = centerY + Math.sin(angle) * travelDist;
-    
-    // Always use stream position
-    const baseX = streamX;
-    const baseY = streamY;
-    
-    // No parallax
-    const drawX = baseX;
-    const drawY = baseY;
+    const drawX = centerX + Math.cos(angle) * travelDist;
+    const drawY = centerY + Math.sin(angle) * travelDist;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
     
-    // Size: scales with depth phase
-    const depthSize = 0.4 + depthPhase * 1.2;
+    // Size: slight scaling
+    const depthSize = 0.5 + depthPhase * 1.0;
     const sizeMultiplier = depthSize;
     
     // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.05) {
-      depthAlpha = depthPhase / 0.05;
+    if (depthPhase < 0.3) {
+      depthAlpha = depthPhase / 0.3;
     } else if (depthPhase > 0.95) {
       depthAlpha = (1 - depthPhase) / 0.05;
     }
@@ -367,38 +346,34 @@ export const drawNebulas = (
     // Inverse of travelDist function: p = r/R (linear)
     const initialPhase = dist / maxDist;
     
-    // Nebulas move slowest (they're the most distant background objects)
-    const speed = 0.05 + parallaxFactor * 0.15;
+    // Constant speed
+    const speed = 0.05;
     
     // Calculate current phase
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Apply perspective curve (linear for constant speed)
+    // Linear motion (Constant visual speed)
     const travelDist = maxDist * depthPhase;
     
     // Calculate new position
-    const streamX = centerX + Math.cos(angle) * travelDist;
-    const streamY = centerY + Math.sin(angle) * travelDist;
-    
-    // No parallax
-    const drawX = streamX;
-    const drawY = streamY;
+    const drawX = centerX + Math.cos(angle) * travelDist;
+    const drawY = centerY + Math.sin(angle) * travelDist;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
     
-    // Size: scales with depth phase
-    const depthSize = 0.3 + depthPhase * 1.5;
+    // Size: slight scaling
+    const depthSize = 0.5 + depthPhase * 1.0;
     const sizeMultiplier = depthSize;
     
     // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.12) {
-      depthAlpha = depthPhase / 0.12;
-    } else if (depthPhase > 0.88) {
-      depthAlpha = (1 - depthPhase) / 0.12;
+    if (depthPhase < 0.3) {
+      depthAlpha = depthPhase / 0.3;
+    } else if (depthPhase > 0.95) {
+      depthAlpha = (1 - depthPhase) / 0.05;
     }
     const effectiveBrightness = brightness * depthAlpha;
     
