@@ -7,9 +7,15 @@ import './StarField.css';
 
 // Autopilot/drift configuration
 const IDLE_THRESHOLD = 5; // Seconds of idle before space travel starts
-const DRIFT_SPEED = 0.015; // Speed of forward movement (lower = slower)
-const DRIFT_FADE_IN = 0.015; // How fast drift fades in
-const DRIFT_FADE_OUT = 0.04; // How fast drift fades out when mouse moves
+const DRIFT_SPEED = 0.05; // Speed of forward movement (increased for better effect)
+const DRIFT_FADE_IN_DURATION = 4.0; // Seconds to fully accelerate (thrusters up)
+const DRIFT_FADE_OUT_DURATION = 3.0; // Seconds to fully decelerate (thrusters down)
+
+// Easing functions for smooth transitions
+// Ease-in: slow start, accelerate (like a spaceship powering up)
+const easeInQuad = (t: number): number => t * t;
+// Ease-out with bezier-like curve: fast initial deceleration, then gradual stop
+const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
 interface StarFieldProps {
   onDriftChange?: (driftAmount: number) => void;
@@ -48,9 +54,11 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     
     // Space travel / autopilot state
     let lastMouseMoveTime = 0;
-    let driftAmount = 0; // 0 = normal mode, 1 = full space travel
+    let driftAmount = 0; // 0 = normal mode, 1 = full space travel (eased value)
+    let driftProgress = 0; // Raw linear progress (0-1) before easing
     let driftOffset = 0; // Accumulated travel distance (0-1, wraps)
     let lastReportedDrift = -1; // Track last reported value to avoid redundant updates
+    let isDrifting = false; // Track if we're currently in drift mode
 
     const handleMouseMove = (e: MouseEvent) => {
       targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
@@ -77,11 +85,18 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       const shouldDrift = idleTime > IDLE_THRESHOLD;
       
       if (shouldDrift) {
-        // Fade in drift
-        driftAmount = Math.min(1, driftAmount + DRIFT_FADE_IN);
-      } else {
-        // Fade out drift (faster)
-        driftAmount = Math.max(0, driftAmount - DRIFT_FADE_OUT);
+        isDrifting = true;
+        // Fade in drift with smooth ease-in
+        driftProgress = Math.min(1, driftProgress + deltaTime / DRIFT_FADE_IN_DURATION);
+        driftAmount = easeInQuad(driftProgress);
+      } else if (isDrifting || driftProgress > 0) {
+        // Fade out drift with smooth bezier-like ease-out
+        driftProgress = Math.max(0, driftProgress - deltaTime / DRIFT_FADE_OUT_DURATION);
+        // Apply ease-out to the remaining progress for smooth deceleration
+        driftAmount = easeOutCubic(driftProgress);
+        if (driftProgress <= 0) {
+          isDrifting = false;
+        }
       }
       
       // Notify parent of drift state changes (throttled to avoid excessive re-renders)
