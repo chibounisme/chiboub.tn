@@ -168,15 +168,16 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
       galaxySize = 95 + Math.random() * 55;
     }
     
-    // Inclination affects appearance dramatically
-    const inclination = Math.random() * Math.random(); // Bias towards face-on
+    // Inclination affects appearance dramatically - allow full range of 3D orientations
+    // 0 = face-on, 1 = edge-on
+    const inclination = Math.random() * 0.85; 
     const tilt = Math.random() * Math.PI * 2;
     
     // Number of arms based on type with more variation
     let numArms = 0;
     if (galaxyType === 'spiral') {
       // Grand design spirals have 2, others can have up to 6
-      numArms = Math.random() < 0.4 ? 2 : 2 + Math.floor(Math.random() * 5);
+      numArms = Math.random() < 0.3 ? 2 : 2 + Math.floor(Math.random() * 6);
     } else if (galaxyType === 'barred-spiral') {
       numArms = 2;
     }
@@ -204,14 +205,32 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
     // Pre-generate star points for elliptical/irregular/lenticular
     const starPoints: { x: number; y: number; size: number; brightness: number }[] = [];
     if (galaxyType === 'elliptical' || galaxyType === 'irregular' || galaxyType === 'lenticular') {
-      const numStars = Math.floor(15 + Math.random() * 30 * (galaxySize / 30));
+      const numStars = Math.floor(20 + Math.random() * 40 * (galaxySize / 30));
+      
+      // For irregular galaxies, create multiple centers/blobs
+      const centers: {x: number, y: number}[] = [];
+      if (galaxyType === 'irregular') {
+        const numCenters = 2 + Math.floor(Math.random() * 3);
+        for(let c=0; c<numCenters; c++) {
+          centers.push({
+            x: (Math.random() - 0.5) * 1.5,
+            y: (Math.random() - 0.5) * 1.5
+          });
+        }
+      }
+
       for (let s = 0; s < numStars; s++) {
         let sx: number, sy: number;
         if (galaxyType === 'irregular') {
-          sx = (Math.random() - 0.5) * 2;
-          sy = (Math.random() - 0.5) * 2;
+          // Pick a random center
+          const center = centers[Math.floor(Math.random() * centers.length)];
+          // Scatter around that center
+          const r = Math.random() * 0.6;
+          const angle = Math.random() * Math.PI * 2;
+          sx = center.x + Math.cos(angle) * r;
+          sy = center.y + Math.sin(angle) * r;
         } else {
-          const r = Math.random() * Math.random();
+          const r = Math.random() * Math.random(); // Bias towards center
           const angle = Math.random() * Math.PI * 2;
           sx = Math.cos(angle) * r;
           sy = Math.sin(angle) * r;
@@ -238,9 +257,9 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
       inclination,
       tilt,
       arms: numArms,
-      armTightness: galaxyType === 'barred-spiral' ? 0.8 + Math.random() * 0.6 : 0.8 + Math.random() * 2.0,
-      armSpread: 0.25 + Math.random() * 0.5,
-      coreSize: galaxyType === 'elliptical' ? 0.5 + Math.random() * 0.4 : 0.1 + Math.random() * 0.25,
+      armTightness: galaxyType === 'barred-spiral' ? 0.5 + Math.random() * 1.0 : 0.4 + Math.random() * 2.5,
+      armSpread: 0.1 + Math.random() * 0.8,
+      coreSize: galaxyType === 'elliptical' ? 0.3 + Math.random() * 0.6 : 0.05 + Math.random() * 0.3,
       coreColor: varyColor(baseColor, 40),
       armColor: varyColor(baseColor, 60),
       outerColor: varyColor(baseColor, 80),
