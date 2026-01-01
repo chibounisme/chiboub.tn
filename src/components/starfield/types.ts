@@ -114,6 +114,8 @@ export interface EmbeddedStar {
   color: Color;
 }
 
+export type NebulaType = 'emission' | 'reflection' | 'dark' | 'planetary' | 'supernova' | 'butterfly' | 'hourglass' | 'twin-jet' | 'ring';
+
 export interface Nebula {
   x: number;
   y: number;
@@ -124,6 +126,7 @@ export interface Nebula {
   color3: Color;
   shape: number;
   rotation: number;
+  type: NebulaType;
   noiseSeeds: number[];
   dustLanes: DustLane[];
   layers: NebulaLayer[];
@@ -132,4 +135,26 @@ export interface Nebula {
   dustParticles: DustParticle[];
   embeddedStars: EmbeddedStar[];
   parallaxFactor: number;
+}
+
+export interface ClusterStar {
+  x: number; // Relative to cluster center
+  y: number; // Relative to cluster center
+  size: number;
+  color: Color;
+  brightness: number;
+  twinkleSpeed: number;
+  twinkleOffset: number;
+}
+
+export interface StarCluster {
+  x: number;
+  y: number;
+  size: number; // Overall radius
+  brightness: number;
+  stars: ClusterStar[];
+  color: Color; // Dominant color
+  parallaxFactor: number;
+  rotation: number;
+  type: 'open' | 'globular';
 }
