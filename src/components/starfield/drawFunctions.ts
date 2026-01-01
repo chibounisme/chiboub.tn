@@ -3,12 +3,11 @@ import type { Star, ShootingStar, Galaxy, Nebula } from './types';
 /**
  * Draw all stars with twinkling effect and optional space travel effect
  * 
- * Space travel simulation:
- * - Each star has a "depth phase" that cycles from 0 to 1
- * - Phase 0 = star is far away (at center/vanishing point), faded in
- * - Phase 1 = star has passed the camera (at/beyond screen edge)
- * - Stars move radially from center outward
- * - Smooth blending between normal and drift modes
+ * Space travel simulation (warp/hyperspace effect):
+ * - Stars stream outward from center (vanishing point) toward edges
+ * - Each star has a unique phase offset for even distribution
+ * - Phase cycles 0→1: star travels from center to edge, then resets
+ * - Creates classic "warp speed" starfield effect
  */
 export const drawStars = (
   ctx: CanvasRenderingContext2D,
@@ -19,55 +18,69 @@ export const drawStars = (
   canvasWidth: number,
   canvasHeight: number,
   driftOffset: number = 0,
-  _driftAmount: number = 0
+  driftAmount: number = 0
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
   const centerX = halfWidth;
   const centerY = halfHeight;
+  // Maximum distance from center to corner
+  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
   
   for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
     
-    // Direction from center for outward drift
+    // Calculate initial position properties relative to center
     const dx = star.x - centerX;
     const dy = star.y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
     
-    // Evenly distributed phase
-    const basePhase = (star.twinkleOffset / (Math.PI * 2)) % 1;
-    const speed = 0.4 + star.parallaxFactor * 1.0;
-    const depthPhase = (basePhase + driftOffset * speed) % 1;
+    // Determine the star's "initial phase" based on its static position
+    // This ensures that when driftOffset is 0, the star is at its original position
+    // We use the inverse of the perspective curve (sqrt) to map distance to phase
+    const initialPhase = Math.sqrt(dist / maxDist);
     
-    // Approach phase: 0→1→0 (peaks at 0.5)
-    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
+    // Closer stars (higher parallax) move faster through the field
+    const speed = 0.2 + star.parallaxFactor * 0.5;
     
-    // Outward drift: stars move away from center as they "approach"
-    // Movement amount scales with distance from center and approach phase
-    const driftScale = 0.3 * approachPhase;
-    const driftX = dist > 1 ? (dx / dist) * dist * driftScale : 0;
-    const driftY = dist > 1 ? (dy / dist) * dist * driftScale : 0;
+    // Calculate current phase based on travel
+    // The phase cycles 0->1, representing Z-depth movement from far to near
+    const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Final position: original + drift + parallax
-    const drawX = star.x + driftX + mouseX * star.parallaxFactor * halfWidth;
-    const drawY = star.y + driftY + mouseY * star.parallaxFactor * halfHeight;
+    // Apply perspective curve: stars accelerate as they get closer (move to edge)
+    // Square function pushes stars towards the center (vanishing point) initially,
+    // then accelerates them outward, creating a 3D tunnel effect
+    const travelDist = maxDist * (depthPhase * depthPhase);
+    
+    // Calculate new position
+    const streamX = centerX + Math.cos(angle) * travelDist;
+    const streamY = centerY + Math.sin(angle) * travelDist;
+    
+    // Add mouse parallax
+    const drawX = streamX + mouseX * star.parallaxFactor * halfWidth;
+    const drawY = streamY + mouseY * star.parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
       continue;
     }
     
-    // Size scales with approach (closer = bigger)
-    const sizeMultiplier = 0.5 + approachPhase * 1.0;
+    // Size: scales with depth phase (closer = bigger)
+    const depthSize = 0.5 + depthPhase * 2.0; // Range: 0.5x to 2.5x
+    // Always apply perspective scaling to maintain consistent 3D world
+    const sizeMultiplier = depthSize;
     const drawSize = star.size * sizeMultiplier;
     
-    // Alpha: quick fade in/out at cycle edges
+    // Alpha: fade in/out at the ends of the cycle to prevent popping
+    // Always apply fading to avoid hard cuts at center/edge
     let depthAlpha = 1;
-    if (depthPhase < 0.05) {
-      depthAlpha = depthPhase / 0.05;
-    } else if (depthPhase > 0.95) {
-      depthAlpha = (1 - depthPhase) / 0.05;
+    if (depthPhase < 0.1) {
+      depthAlpha = depthPhase / 0.1;
+    } 
+    else if (depthPhase > 0.9) {
+      depthAlpha = (1 - depthPhase) / 0.1;
     }
     
     const alpha = star.brightness * twinkle * depthAlpha;
@@ -129,7 +142,7 @@ export const drawShootingStars = (
 };
 
 /**
- * Draw all galaxies - with optional space travel effect
+ * Draw all galaxies - with optional space travel effect (continuous warp)
  */
 export const drawGalaxies = (
   ctx: CanvasRenderingContext2D,
@@ -139,10 +152,13 @@ export const drawGalaxies = (
   canvasWidth: number,
   canvasHeight: number,
   driftOffset: number = 0,
-  _driftAmount: number = 0
+  driftAmount: number = 0
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
+  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
   
   for (let g = 0; g < galaxies.length; g++) {
     const galaxy = galaxies[g];
@@ -152,42 +168,47 @@ export const drawGalaxies = (
       parallaxFactor, armPoints, starPoints
     } = galaxy;
     
-    // Evenly distributed phase based on galaxy's rotation
-    const basePhase = (rotation / (Math.PI * 2)) % 1;
-    const speed = 0.2 + parallaxFactor * 0.5;
-    const depthPhase = (basePhase + driftOffset * speed) % 1;
-    
-    // Direction from center for outward drift
-    const centerX = halfWidth;
-    const centerY = halfHeight;
+    // Calculate initial position properties relative to center
     const dx = x - centerX;
     const dy = y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
     
-    // Approach phase for movement
-    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
-    const driftScale = 0.25 * approachPhase;
-    const driftX = dist > 1 ? (dx / dist) * dist * driftScale : 0;
-    const driftY = dist > 1 ? (dy / dist) * dist * driftScale : 0;
+    // Determine initial phase from static position
+    const initialPhase = Math.sqrt(dist / maxDist);
     
-    // Final position: original + drift + parallax
-    const drawX = x + driftX + mouseX * parallaxFactor * halfWidth;
-    const drawY = y + driftY + mouseY * parallaxFactor * halfHeight;
+    // Galaxies move slower (they're far away background objects)
+    const speed = 0.1 + parallaxFactor * 0.2;
+    
+    // Calculate current phase
+    const depthPhase = (initialPhase + driftOffset * speed) % 1;
+    
+    // Apply perspective curve
+    const travelDist = maxDist * (depthPhase * depthPhase);
+    
+    // Calculate new position
+    const streamX = centerX + Math.cos(angle) * travelDist;
+    const streamY = centerY + Math.sin(angle) * travelDist;
+    
+    // Add parallax
+    const drawX = streamX + mouseX * parallaxFactor * halfWidth;
+    const drawY = streamY + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
     
-    // Size scales with approach
-    const sizeMultiplier = 0.6 + approachPhase * 0.8;
+    // Size: scales with depth phase
+    const depthSize = 0.4 + depthPhase * 1.2;
+    const sizeMultiplier = depthSize;
     
-    // Alpha: quick fade in/out at edges
+    // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.05) {
-      depthAlpha = depthPhase / 0.05;
-    } else if (depthPhase > 0.95) {
-      depthAlpha = (1 - depthPhase) / 0.05;
+    if (depthPhase < 0.1) {
+      depthAlpha = depthPhase / 0.1;
+    } else if (depthPhase > 0.9) {
+      depthAlpha = (1 - depthPhase) / 0.1;
     }
     const effectiveBrightness = brightness * depthAlpha;
     
@@ -309,7 +330,7 @@ export const drawGalaxies = (
 };
 
 /**
- * Draw all nebulas - with optional space travel effect
+ * Draw all nebulas - with optional space travel effect (continuous warp)
  */
 export const drawNebulas = (
   ctx: CanvasRenderingContext2D,
@@ -319,10 +340,13 @@ export const drawNebulas = (
   canvasWidth: number,
   canvasHeight: number,
   driftOffset: number = 0,
-  _driftAmount: number = 0
+  driftAmount: number = 0
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
+  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
   
   for (let n = 0; n < nebulas.length; n++) {
     const nebula = nebulas[n];
@@ -331,42 +355,47 @@ export const drawNebulas = (
       layers, blobs, filaments, dustParticles, parallaxFactor
     } = nebula;
     
-    // Evenly distributed phase based on nebula's rotation
-    const basePhase = (rotation / (Math.PI * 2)) % 1;
-    const speed = 0.15 + parallaxFactor * 0.4;
-    const depthPhase = (basePhase + driftOffset * speed) % 1;
-    
-    // Direction from center for outward drift
-    const centerX = halfWidth;
-    const centerY = halfHeight;
+    // Calculate initial position properties relative to center
     const dx = x - centerX;
     const dy = y - centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx);
     
-    // Approach phase for movement
-    const approachPhase = depthPhase < 0.5 ? depthPhase * 2 : (1 - depthPhase) * 2;
-    const driftScale = 0.25 * approachPhase;
-    const driftX = dist > 1 ? (dx / dist) * dist * driftScale : 0;
-    const driftY = dist > 1 ? (dy / dist) * dist * driftScale : 0;
+    // Determine initial phase from static position
+    const initialPhase = Math.sqrt(dist / maxDist);
     
-    // Final position: original + drift + parallax
-    const drawX = x + driftX + mouseX * parallaxFactor * halfWidth;
-    const drawY = y + driftY + mouseY * parallaxFactor * halfHeight;
+    // Nebulas move slowest (they're the most distant background objects)
+    const speed = 0.05 + parallaxFactor * 0.15;
+    
+    // Calculate current phase
+    const depthPhase = (initialPhase + driftOffset * speed) % 1;
+    
+    // Apply perspective curve
+    const travelDist = maxDist * (depthPhase * depthPhase);
+    
+    // Calculate new position
+    const streamX = centerX + Math.cos(angle) * travelDist;
+    const streamY = centerY + Math.sin(angle) * travelDist;
+    
+    // Add parallax
+    const drawX = streamX + mouseX * parallaxFactor * halfWidth;
+    const drawY = streamY + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
       continue;
     }
     
-    // Size scales with approach
-    const sizeMultiplier = 0.5 + approachPhase * 1.0;
+    // Size: scales with depth phase
+    const depthSize = 0.3 + depthPhase * 1.5;
+    const sizeMultiplier = depthSize;
     
-    // Alpha: quick fade in/out at edges
+    // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.06) {
-      depthAlpha = depthPhase / 0.06;
-    } else if (depthPhase > 0.94) {
-      depthAlpha = (1 - depthPhase) / 0.06;
+    if (depthPhase < 0.12) {
+      depthAlpha = depthPhase / 0.12;
+    } else if (depthPhase > 0.88) {
+      depthAlpha = (1 - depthPhase) / 0.12;
     }
     const effectiveBrightness = brightness * depthAlpha;
     
