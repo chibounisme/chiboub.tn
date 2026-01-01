@@ -1,7 +1,14 @@
 import type { Star, ShootingStar, Galaxy, Nebula } from './types';
 
 /**
- * Draw all stars with twinkling effect - optimized version
+ * Draw all stars with twinkling effect and optional space travel effect
+ * 
+ * Space travel simulation:
+ * - Each star has a "depth phase" that cycles from 0 to 1
+ * - Phase 0 = star is far away (at center/vanishing point), faded in
+ * - Phase 1 = star has passed the camera (at/beyond screen edge)
+ * - Stars move radially from center outward
+ * - Smooth blending between normal and drift modes
  */
 export const drawStars = (
   ctx: CanvasRenderingContext2D,
@@ -10,21 +17,63 @@ export const drawStars = (
   mouseX: number,
   mouseY: number,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  driftOffset: number = 0,
+  _driftAmount: number = 0
 ): void => {
-  // Batch stars by approximate color for fewer state changes
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
+  const maxRadius = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight) * 1.2;
   
   for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
-    const alpha = star.brightness * twinkle;
     
-    const drawX = star.x + mouseX * star.parallaxFactor * halfWidth;
-    const drawY = star.y + mouseY * star.parallaxFactor * halfHeight;
+    // Calculate direction from center (fixed per star)
+    const origDx = star.x - centerX;
+    const origDy = star.y - centerY;
+    const origDist = Math.sqrt(origDx * origDx + origDy * origDy);
     
-    // Simple circle - no glow for performance
+    let drawX: number;
+    let drawY: number;
+    let alpha = star.brightness * twinkle;
+    
+    if (origDist > 1) {
+      const dirX = origDx / origDist;
+      const dirY = origDy / origDist;
+      
+      // Base phase from original distance - this is where star starts
+      const basePhase = origDist / maxRadius;
+      // Speed varies by parallax factor (closer stars move faster)
+      const speed = 0.5 + star.parallaxFactor * 1.5;
+      // Current phase based on accumulated travel (driftOffset is already smoothly accumulated)
+      const depthPhase = (basePhase + driftOffset * speed) % 1;
+      
+      // Position based on current depth phase
+      const travelDist = depthPhase * maxRadius;
+      const baseX = centerX + dirX * travelDist;
+      const baseY = centerY + dirY * travelDist;
+      
+      // Add mouse parallax on top (always active)
+      drawX = baseX + mouseX * star.parallaxFactor * halfWidth;
+      drawY = baseY + mouseY * star.parallaxFactor * halfHeight;
+      
+      // Fade in from center (first 15% of journey)
+      const fadeIn = Math.min(1, depthPhase / 0.15);
+      alpha = star.brightness * twinkle * fadeIn;
+    } else {
+      // Star at center - just apply parallax
+      drawX = star.x + mouseX * star.parallaxFactor * halfWidth;
+      drawY = star.y + mouseY * star.parallaxFactor * halfHeight;
+    }
+    
+    // Skip if off-screen
+    if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
+      continue;
+    }
+    
     ctx.beginPath();
     ctx.arc(drawX, drawY, star.size, 0, Math.PI * 2);
     ctx.fillStyle = `rgba(${star.color.r}, ${star.color.g}, ${star.color.b}, ${alpha})`;
@@ -82,7 +131,7 @@ export const drawShootingStars = (
 };
 
 /**
- * Draw all galaxies - optimized version with no per-particle gradients
+ * Draw all galaxies - with optional space travel effect
  */
 export const drawGalaxies = (
   ctx: CanvasRenderingContext2D,
@@ -90,10 +139,15 @@ export const drawGalaxies = (
   mouseX: number,
   mouseY: number,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  driftOffset: number = 0,
+  _driftAmount: number = 0
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
+  const maxRadius = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight) * 1.3;
   
   for (let g = 0; g < galaxies.length; g++) {
     const galaxy = galaxies[g];
@@ -103,8 +157,46 @@ export const drawGalaxies = (
       parallaxFactor, armPoints, starPoints
     } = galaxy;
     
-    const drawX = x + mouseX * parallaxFactor * halfWidth;
-    const drawY = y + mouseY * parallaxFactor * halfHeight;
+    // Calculate direction from center (fixed per galaxy)
+    const origDx = x - centerX;
+    const origDy = y - centerY;
+    const origDist = Math.sqrt(origDx * origDx + origDy * origDy);
+    
+    let drawX: number;
+    let drawY: number;
+    let effectiveBrightness = brightness;
+    
+    if (origDist > 1) {
+      const dirX = origDx / origDist;
+      const dirY = origDy / origDist;
+      
+      // Base phase from original distance
+      const basePhase = origDist / maxRadius;
+      const speed = 0.2 + parallaxFactor * 0.8;
+      // driftOffset is already smoothly accumulated based on driftAmount
+      const depthPhase = (basePhase + driftOffset * speed) % 1;
+      
+      // Position based on current depth
+      const travelDist = depthPhase * maxRadius;
+      const baseX = centerX + dirX * travelDist;
+      const baseY = centerY + dirY * travelDist;
+      
+      // Add mouse parallax on top
+      drawX = baseX + mouseX * parallaxFactor * halfWidth;
+      drawY = baseY + mouseY * parallaxFactor * halfHeight;
+      
+      // Fade in from center (first 20% of journey)
+      const fadeIn = Math.min(1, depthPhase / 0.2);
+      effectiveBrightness = brightness * fadeIn;
+    } else {
+      drawX = x + mouseX * parallaxFactor * halfWidth;
+      drawY = y + mouseY * parallaxFactor * halfHeight;
+    }
+    
+    // Skip if off-screen
+    if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
+      continue;
+    }
     
     ctx.save();
     ctx.translate(drawX, drawY);
@@ -115,7 +207,7 @@ export const drawGalaxies = (
     
     // Single core glow gradient (one per galaxy is acceptable)
     const coreGlow = ctx.createRadialGradient(0, 0, 0, 0, 0, coreRadius * 1.5);
-    coreGlow.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${brightness * 0.4})`);
+    coreGlow.addColorStop(0, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${effectiveBrightness * 0.4})`);
     coreGlow.addColorStop(1, `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, 0)`);
     ctx.fillStyle = coreGlow;
     ctx.beginPath();
@@ -129,7 +221,7 @@ export const drawGalaxies = (
         const sx = star.x * size;
         const sy = star.y * size;
         const distFromCenter = Math.sqrt(star.x * star.x + star.y * star.y);
-        const alpha = brightness * star.brightness * Math.max(0, 1 - distFromCenter * 0.8);
+        const alpha = effectiveBrightness * star.brightness * Math.max(0, 1 - distFromCenter * 0.8);
         
         if (alpha > 0.02) {
           ctx.beginPath();
@@ -144,7 +236,7 @@ export const drawGalaxies = (
         const star = starPoints[i];
         const sx = star.x * size;
         const sy = star.y * size;
-        const alpha = brightness * star.brightness;
+        const alpha = effectiveBrightness * star.brightness;
         
         ctx.beginPath();
         ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
@@ -177,7 +269,7 @@ export const drawGalaxies = (
           const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
           const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
           
-          const alpha = brightness * (1 - t * 0.6) * 0.6;
+          const alpha = effectiveBrightness * (1 - t * 0.6) * 0.6;
           
           ctx.beginPath();
           ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
@@ -209,7 +301,7 @@ export const drawGalaxies = (
           const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
           const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
           
-          const alpha = brightness * (1 - t * 0.6) * 0.6;
+          const alpha = effectiveBrightness * (1 - t * 0.6) * 0.6;
           
           ctx.beginPath();
           ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
@@ -224,7 +316,7 @@ export const drawGalaxies = (
 };
 
 /**
- * Draw all nebulas - optimized version with minimal gradients
+ * Draw all nebulas - with optional space travel effect
  */
 export const drawNebulas = (
   ctx: CanvasRenderingContext2D,
@@ -232,10 +324,15 @@ export const drawNebulas = (
   mouseX: number,
   mouseY: number,
   canvasWidth: number,
-  canvasHeight: number
+  canvasHeight: number,
+  driftOffset: number = 0,
+  _driftAmount: number = 0
 ): void => {
   const halfWidth = canvasWidth * 0.5;
   const halfHeight = canvasHeight * 0.5;
+  const centerX = halfWidth;
+  const centerY = halfHeight;
+  const maxRadius = Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight) * 1.4;
   
   for (let n = 0; n < nebulas.length; n++) {
     const nebula = nebulas[n];
@@ -244,8 +341,46 @@ export const drawNebulas = (
       layers, blobs, filaments, dustParticles, parallaxFactor
     } = nebula;
     
-    const drawX = x + mouseX * parallaxFactor * halfWidth;
-    const drawY = y + mouseY * parallaxFactor * halfHeight;
+    // Calculate direction from center (fixed per nebula)
+    const origDx = x - centerX;
+    const origDy = y - centerY;
+    const origDist = Math.sqrt(origDx * origDx + origDy * origDy);
+    
+    let drawX: number;
+    let drawY: number;
+    let effectiveBrightness = brightness;
+    
+    if (origDist > 1) {
+      const dirX = origDx / origDist;
+      const dirY = origDy / origDist;
+      
+      // Base phase from original distance
+      const basePhase = origDist / maxRadius;
+      const speed = 0.15 + parallaxFactor * 0.5;
+      // driftOffset is already smoothly accumulated based on driftAmount
+      const depthPhase = (basePhase + driftOffset * speed) % 1;
+      
+      // Position based on current depth
+      const travelDist = depthPhase * maxRadius;
+      const baseX = centerX + dirX * travelDist;
+      const baseY = centerY + dirY * travelDist;
+      
+      // Add mouse parallax on top
+      drawX = baseX + mouseX * parallaxFactor * halfWidth;
+      drawY = baseY + mouseY * parallaxFactor * halfHeight;
+      
+      // Fade in from center (first 25% of journey)
+      const fadeIn = Math.min(1, depthPhase / 0.25);
+      effectiveBrightness = brightness * fadeIn;
+    } else {
+      drawX = x + mouseX * parallaxFactor * halfWidth;
+      drawY = y + mouseY * parallaxFactor * halfHeight;
+    }
+    
+    // Skip if off-screen
+    if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
+      continue;
+    }
     
     ctx.save();
     ctx.translate(drawX, drawY);
@@ -264,7 +399,7 @@ export const drawNebulas = (
         const blobX = offsetX + Math.cos(blob.angle) * blob.dist;
         const blobY = offsetY + Math.sin(blob.angle) * blob.dist * 0.7;
         
-        const alpha = brightness * opacity * 0.15;
+        const alpha = effectiveBrightness * opacity * 0.15;
         ctx.beginPath();
         ctx.arc(blobX, blobY, blob.size * 0.8, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
@@ -281,7 +416,7 @@ export const drawNebulas = (
       const endY = Math.sin(filament.endAngle) * filament.endDist * 0.7;
       
       const filamentColor = filament.colorIndex === 0 ? color2 : color3;
-      const strokeAlpha = brightness * 0.12;
+      const strokeAlpha = effectiveBrightness * 0.12;
       
       ctx.strokeStyle = `rgba(${filamentColor.r}, ${filamentColor.g}, ${filamentColor.b}, ${strokeAlpha})`;
       ctx.lineWidth = filament.lineWidth;
@@ -301,7 +436,7 @@ export const drawNebulas = (
       
       const dustColor = particle.colorIndex === 0 ? color2 : color3;
       const distRatio = particle.dist / size;
-      const dustAlpha = brightness * particle.alpha * 0.3 * Math.max(0, 1 - distRatio * 0.8);
+      const dustAlpha = effectiveBrightness * particle.alpha * 0.3 * Math.max(0, 1 - distRatio * 0.8);
       
       if (dustAlpha > 0.01) {
         ctx.beginPath();
@@ -334,7 +469,7 @@ export const drawNebulas = (
     
     // Single subtle core gradient (one per nebula is acceptable)
     const coreGradient = ctx.createRadialGradient(0, 0, 0, 0, 0, size * 0.15);
-    coreGradient.addColorStop(0, `rgba(${color3.r}, ${color3.g}, ${color3.b}, ${brightness * 0.25})`);
+    coreGradient.addColorStop(0, `rgba(${color3.r}, ${color3.g}, ${color3.b}, ${effectiveBrightness * 0.25})`);
     coreGradient.addColorStop(1, `rgba(${color1.r}, ${color1.g}, ${color1.b}, 0)`);
     
     ctx.fillStyle = coreGradient;
