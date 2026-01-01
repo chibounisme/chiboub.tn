@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import StarField from './components/StarField';
+import { StarField } from './components/starfield';
 import { GitHubIcon, LinkedInIcon, EmailIcon } from './components/Icons';
 import './App.css';
 

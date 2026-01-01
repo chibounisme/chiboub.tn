@@ -1,0 +1,435 @@
+import type { Star, ShootingStar, Galaxy, Nebula, GalaxyType } from './types';
+import {
+  STAR_DENSITY_FACTOR,
+  GALAXY_TYPES,
+  MIN_GALAXIES,
+  MAX_GALAXIES,
+  MIN_NEBULAS,
+  MAX_NEBULAS,
+  MIN_NEBULA_SIZE,
+  MAX_NEBULA_SIZE,
+  NEBULA_COLOR_TRIPLETS,
+} from './constants';
+import {
+  getRandomStarColor,
+  getRandomShootingStarColor,
+  getRandomGalaxyColor,
+  varyColor,
+} from './colorUtils';
+
+/**
+ * Initialize stars based on canvas dimensions with diverse sizes
+ */
+export const initStars = (width: number, height: number): Star[] => {
+  const stars: Star[] = [];
+  const numStars = Math.floor((width * height) / STAR_DENSITY_FACTOR);
+  
+  for (let i = 0; i < numStars; i++) {
+    // More diverse size distribution - most stars are tiny, few are bright
+    const sizeRoll = Math.random();
+    let size: number;
+    if (sizeRoll < 0.5) {
+      // 50% - tiny distant stars
+      size = 0.2 + Math.random() * 0.5;
+    } else if (sizeRoll < 0.8) {
+      // 30% - small stars
+      size = 0.5 + Math.random() * 0.8;
+    } else if (sizeRoll < 0.95) {
+      // 15% - medium stars
+      size = 1.0 + Math.random() * 1.0;
+    } else {
+      // 5% - bright prominent stars
+      size = 1.8 + Math.random() * 1.2;
+    }
+    
+    // Brightness correlated with size but with variation
+    const baseBrightness = 0.3 + (size / 3) * 0.5;
+    const brightness = Math.min(1, baseBrightness + (Math.random() - 0.5) * 0.3);
+    
+    const parallaxFactor = 0.02 + (size / 3) * 0.08;
+    
+    // Twinkle speed varies - smaller stars twinkle faster
+    const twinkleSpeed = 0.01 + Math.random() * 0.05 + (1 - size / 3) * 0.02;
+    
+    stars.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size,
+      brightness,
+      twinkleSpeed,
+      twinkleOffset: Math.random() * Math.PI * 2,
+      color: getRandomStarColor(),
+      parallaxFactor,
+    });
+  }
+  
+  return stars;
+};
+
+/**
+ * Create a new shooting star
+ */
+export const createShootingStar = (width: number, height: number): ShootingStar => {
+  const edge = Math.floor(Math.random() * 4);
+  const margin = 50;
+  let startX: number, startY: number, angle: number;
+  
+  switch (edge) {
+    case 0: // From top
+      startX = Math.random() * width;
+      startY = -margin;
+      angle = Math.PI / 4 + Math.random() * Math.PI / 2;
+      break;
+    case 1: // From right
+      startX = width + margin;
+      startY = Math.random() * height;
+      angle = Math.PI * 0.6 + Math.random() * Math.PI * 0.6;
+      break;
+    case 2: // From bottom
+      startX = Math.random() * width;
+      startY = height + margin;
+      angle = -Math.PI / 4 - Math.random() * Math.PI / 2;
+      break;
+    case 3: // From left
+    default:
+      startX = -margin;
+      startY = Math.random() * height;
+      angle = -Math.PI / 4 + Math.random() * Math.PI / 2;
+      break;
+  }
+
+  // More varied shooting star characteristics
+  const speedRoll = Math.random();
+  let speed: number;
+  if (speedRoll < 0.3) {
+    speed = 3 + Math.random() * 5;  // Slow, graceful
+  } else if (speedRoll < 0.7) {
+    speed = 8 + Math.random() * 10; // Medium
+  } else {
+    speed = 18 + Math.random() * 12; // Fast, dramatic
+  }
+  
+  // Size varies - some are faint streaks, others are bright bolides
+  const sizeRoll = Math.random();
+  let size: number;
+  if (sizeRoll < 0.5) {
+    size = 0.5 + Math.random() * 1;   // Faint
+  } else if (sizeRoll < 0.85) {
+    size = 1.5 + Math.random() * 1.5; // Normal
+  } else {
+    size = 3 + Math.random() * 2;     // Bright bolide
+  }
+  
+  const length = 30 + speed * 6 + size * 15 + Math.random() * 50;
+
+  return {
+    x: startX,
+    y: startY,
+    angle,
+    speed,
+    length,
+    brightness: 0.6 + Math.random() * 0.4,
+    life: 1,
+    decay: 0.002 + Math.random() * 0.015 + (speed / 30) * 0.01,
+    size,
+    color: getRandomShootingStarColor(),
+    parallaxFactor: 0.06 + Math.random() * 0.06,
+  };
+};
+
+/**
+ * Initialize galaxies with diverse sizes and colors
+ */
+export const initGalaxies = (width: number, height: number): Galaxy[] => {
+  const galaxies: Galaxy[] = [];
+  const numGalaxies = MIN_GALAXIES + Math.floor(Math.random() * (MAX_GALAXIES - MIN_GALAXIES + 1));
+  
+  for (let i = 0; i < numGalaxies; i++) {
+    const baseColor = getRandomGalaxyColor();
+    const galaxyType = GALAXY_TYPES[Math.floor(Math.random() * GALAXY_TYPES.length)] as GalaxyType;
+    
+    // More diverse size distribution simulating cosmic distance
+    const distanceFactor = Math.random();
+    let galaxySize: number;
+    if (distanceFactor < 0.35) {
+      // Very distant - barely visible dots
+      galaxySize = 3 + Math.random() * 8;
+    } else if (distanceFactor < 0.55) {
+      // Distant - small fuzzy patches
+      galaxySize = 10 + Math.random() * 15;
+    } else if (distanceFactor < 0.75) {
+      // Medium distance
+      galaxySize = 25 + Math.random() * 30;
+    } else if (distanceFactor < 0.9) {
+      // Closer - visible structure
+      galaxySize = 55 + Math.random() * 40;
+    } else {
+      // Very close - large and detailed
+      galaxySize = 95 + Math.random() * 55;
+    }
+    
+    // Inclination affects appearance dramatically
+    const inclination = Math.random() * Math.random(); // Bias towards face-on
+    const tilt = Math.random() * Math.PI * 2;
+    
+    // Number of arms based on type with more variation
+    let numArms = 0;
+    if (galaxyType === 'spiral') {
+      // Grand design spirals have 2, others can have up to 6
+      numArms = Math.random() < 0.4 ? 2 : 2 + Math.floor(Math.random() * 5);
+    } else if (galaxyType === 'barred-spiral') {
+      numArms = 2;
+    }
+    
+    // Pre-generate arm points with varied density
+    const armPoints: { t: number; offset: number; dotSize: number }[][] = [];
+    if (galaxyType === 'spiral' || galaxyType === 'barred-spiral') {
+      // More points for larger galaxies
+      const numPointsPerArm = Math.floor(15 + Math.random() * 20 + galaxySize / 5);
+      for (let arm = 0; arm < numArms; arm++) {
+        const points: { t: number; offset: number; dotSize: number }[] = [];
+        for (let p = 0; p < numPointsPerArm; p++) {
+          const t = p / numPointsPerArm;
+          const sizeScale = galaxySize / 50;
+          points.push({
+            t,
+            offset: (Math.random() - 0.5) * 6 * t * sizeScale,
+            dotSize: Math.max(0.3, (1 - t) * (1.5 + Math.random() * 1.5) * sizeScale),
+          });
+        }
+        armPoints.push(points);
+      }
+    }
+    
+    // Pre-generate star points for elliptical/irregular/lenticular
+    const starPoints: { x: number; y: number; size: number; brightness: number }[] = [];
+    if (galaxyType === 'elliptical' || galaxyType === 'irregular' || galaxyType === 'lenticular') {
+      const numStars = Math.floor(15 + Math.random() * 30 * (galaxySize / 30));
+      for (let s = 0; s < numStars; s++) {
+        let sx: number, sy: number;
+        if (galaxyType === 'irregular') {
+          sx = (Math.random() - 0.5) * 2;
+          sy = (Math.random() - 0.5) * 2;
+        } else {
+          const r = Math.random() * Math.random();
+          const angle = Math.random() * Math.PI * 2;
+          sx = Math.cos(angle) * r;
+          sy = Math.sin(angle) * r;
+        }
+        starPoints.push({
+          x: sx,
+          y: sy,
+          size: Math.max(0.2, (0.3 + Math.random() * 0.8) * (galaxySize / 40)),
+          brightness: 0.3 + Math.random() * 0.7,
+        });
+      }
+    }
+    
+    const ellipticity = galaxyType === 'elliptical' ? Math.random() * 0.7 : 
+                       galaxyType === 'lenticular' ? 0.5 + Math.random() * 0.3 : 0;
+    
+    galaxies.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: galaxySize,
+      rotation: Math.random() * Math.PI * 2,
+      brightness: 0.02 + Math.random() * 0.06,
+      type: galaxyType,
+      inclination,
+      tilt,
+      arms: numArms,
+      armTightness: galaxyType === 'barred-spiral' ? 0.8 + Math.random() * 0.6 : 0.8 + Math.random() * 2.0,
+      armSpread: 0.25 + Math.random() * 0.5,
+      coreSize: galaxyType === 'elliptical' ? 0.5 + Math.random() * 0.4 : 0.1 + Math.random() * 0.25,
+      coreColor: varyColor(baseColor, 40),
+      armColor: varyColor(baseColor, 60),
+      outerColor: varyColor(baseColor, 80),
+      parallaxFactor: 0.005 + (1 - galaxySize / 150) * 0.05,
+      armPoints,
+      ellipticity,
+      starPoints,
+    });
+  }
+  
+  return galaxies;
+};
+
+/**
+ * Initialize nebulas with diverse sizes and colors
+ */
+export const initNebulas = (width: number, height: number): Nebula[] => {
+  const nebulas: Nebula[] = [];
+  const numNebulas = MIN_NEBULAS + Math.floor(Math.random() * (MAX_NEBULAS - MIN_NEBULAS + 1));
+  
+  for (let i = 0; i < numNebulas; i++) {
+    // Select color triplet and add unique variation
+    const baseTriplet = NEBULA_COLOR_TRIPLETS[Math.floor(Math.random() * NEBULA_COLOR_TRIPLETS.length)];
+    const colorTriplet: [typeof baseTriplet[0], typeof baseTriplet[1], typeof baseTriplet[2]] = [
+      varyColor(baseTriplet[0], 40),
+      varyColor(baseTriplet[1], 40),
+      varyColor(baseTriplet[2], 40),
+    ];
+    
+    // More diverse nebula sizes
+    const sizeRoll = Math.random();
+    let nebulaSize: number;
+    if (sizeRoll < 0.3) {
+      nebulaSize = 25 + Math.random() * 35;   // Small compact nebulas
+    } else if (sizeRoll < 0.6) {
+      nebulaSize = 60 + Math.random() * 50;   // Medium
+    } else if (sizeRoll < 0.85) {
+      nebulaSize = 110 + Math.random() * 60;  // Large
+    } else {
+      nebulaSize = 170 + Math.random() * 80;  // Very large diffuse
+    }
+    
+    const noiseSeeds = Array.from({ length: 8 }, () => Math.random() * 1000);
+    
+    // Create layers - more layers for larger nebulas
+    const numLayers = 3 + Math.floor(Math.random() * 4) + Math.floor(nebulaSize / 80);
+    const layers = [];
+    const blobs: { angle: number; dist: number; size: number }[][] = [];
+    
+    for (let l = 0; l < numLayers; l++) {
+      const layerScale = 0.3 + Math.random() * 0.9;
+      const layerSize = nebulaSize * layerScale;
+      const seed = noiseSeeds[l % noiseSeeds.length];
+      
+      layers.push({
+        offsetX: (Math.random() - 0.5) * nebulaSize * 0.7,
+        offsetY: (Math.random() - 0.5) * nebulaSize * 0.6,
+        scale: layerScale,
+        opacity: 0.3 + Math.random() * 0.5,
+      });
+      
+      // Pre-generate blobs
+      const numBlobs = 5 + Math.floor(Math.random() * 4);
+      const layerBlobs = [];
+      for (let b = 0; b < numBlobs; b++) {
+        const angle = (b / numBlobs) * Math.PI * 2 + seed;
+        const n1 = Math.sin(b * 50 * 0.01 + seed) * Math.cos(seed * 10 * 0.01 + seed * 0.7);
+        const n2 = Math.sin(b * 50 * 0.02 - seed * 0.3) * Math.sin(seed * 10 * 0.015 + seed * 0.5);
+        const n3 = Math.cos(b * 50 * 0.008 + seed * 10 * 0.008 + seed * 0.2) * 0.5;
+        const noise1 = (n1 + n2 + n3 + 2) / 4;
+        
+        const n4 = Math.sin(b * 30 * 0.01 + seed) * Math.cos(b * 20 * 0.01 + seed * 0.7);
+        const n5 = Math.sin(b * 30 * 0.02 - seed * 0.3) * Math.sin(b * 20 * 0.015 + seed * 0.5);
+        const n6 = Math.cos(b * 30 * 0.008 + b * 20 * 0.008 + seed * 0.2) * 0.5;
+        const noise2 = (n4 + n5 + n6 + 2) / 4;
+        
+        layerBlobs.push({
+          angle,
+          dist: layerSize * 0.3 * noise1,
+          size: layerSize * (0.3 + noise2 * 0.5),
+        });
+      }
+      blobs.push(layerBlobs);
+    }
+    
+    // Create dust lanes
+    const numDustLanes = 1 + Math.floor(Math.random() * 3);
+    const dustLanes = [];
+    for (let d = 0; d < numDustLanes; d++) {
+      dustLanes.push({
+        angle: Math.random() * Math.PI * 2,
+        width: 0.1 + Math.random() * 0.2,
+        offset: (Math.random() - 0.5) * 0.5,
+      });
+    }
+    
+    // Pre-generate filaments
+    const numFilaments = 3 + Math.floor(Math.random() * 3);
+    const filaments = [];
+    for (let f = 0; f < numFilaments; f++) {
+      const startAngle = (f / numFilaments) * Math.PI * 2;
+      const endAngle = startAngle + Math.PI * (0.5 + Math.random() * 0.5);
+      const startDist = nebulaSize * 0.2;
+      const endDist = nebulaSize * (0.4 + Math.random() * 0.3);
+      const startX = Math.cos(startAngle) * startDist;
+      const startY = Math.sin(startAngle) * startDist * 0.6;
+      const endX = Math.cos(endAngle) * endDist;
+      const endY = Math.sin(endAngle) * endDist * 0.6;
+      
+      filaments.push({
+        startAngle,
+        endAngle,
+        startDist,
+        endDist,
+        ctrlX: (startX + endX) / 2 + (Math.random() - 0.5) * nebulaSize * 0.3,
+        ctrlY: (startY + endY) / 2 + (Math.random() - 0.5) * nebulaSize * 0.2,
+        lineWidth: 2 + Math.random() * 6,
+        colorIndex: f % 2,
+      });
+    }
+    
+    // Pre-generate dust particles
+    const numDustParticles = Math.floor(nebulaSize / 5);
+    const dustParticles = [];
+    for (let d = 0; d < numDustParticles; d++) {
+      dustParticles.push({
+        angle: Math.random() * Math.PI * 2,
+        dist: Math.random() * nebulaSize * 0.9,
+        colorIndex: Math.random() < 0.5 ? 0 : 1,
+        alpha: 0.2 + Math.random() * 0.4,
+        size: 0.3 + Math.random() * 1.2,
+      });
+    }
+    
+    // Pre-generate embedded stars - more for larger nebulas
+    const numEmbeddedStars = 3 + Math.floor(Math.random() * 8) + Math.floor(nebulaSize / 40);
+    const embeddedStars = [];
+    for (let s = 0; s < numEmbeddedStars; s++) {
+      // Varied star sizes within nebula
+      const starSizeRoll = Math.random();
+      let starSize: number;
+      if (starSizeRoll < 0.6) {
+        starSize = 0.3 + Math.random() * 0.8;
+      } else if (starSizeRoll < 0.9) {
+        starSize = 1.0 + Math.random() * 1.2;
+      } else {
+        starSize = 2.0 + Math.random() * 1.5;  // Bright embedded stars
+      }
+      
+      embeddedStars.push({
+        angle: Math.random() * Math.PI * 2,
+        dist: Math.random() * nebulaSize * 0.75,
+        size: starSize,
+        brightness: 0.5 + Math.random() * 0.5,
+        color: getRandomStarColor(),
+      });
+    }
+    
+    // Brightness varies with size - smaller nebulas can be brighter (closer)
+    const baseBrightness = 0.015 + Math.random() * 0.025;
+    const sizeBrightnessMod = Math.max(0, 0.02 - nebulaSize / 10000);
+    
+    nebulas.push({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      size: nebulaSize,
+      brightness: baseBrightness + sizeBrightnessMod,
+      color1: colorTriplet[0],
+      color2: colorTriplet[1],
+      color3: colorTriplet[2],
+      shape: Math.random(),
+      rotation: Math.random() * Math.PI * 2,
+      noiseSeeds,
+      dustLanes,
+      layers,
+      blobs,
+      filaments,
+      dustParticles,
+      embeddedStars,
+      parallaxFactor: 0.005 + Math.random() * 0.025,
+    });
+  }
+  
+  return nebulas;
+};
+
+/**
+ * Get the next shooting star delay (in seconds)
+ */
+export const getNextShootingStarDelay = (): number => {
+  return 5 + Math.random() * 10;
+};
