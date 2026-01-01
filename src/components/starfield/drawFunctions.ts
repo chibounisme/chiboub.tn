@@ -31,16 +31,14 @@ export const drawStars = (
     const star = stars[i];
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
     
-    // Calculate initial position properties relative to center
-    const dx = star.x - centerX;
-    const dy = star.y - centerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
+    // Use star properties to generate a stable random angle and phase
+    // This decouples the star's position from the rectangular screen bounds,
+    // creating a uniform radial distribution (no "square tunnel" effect)
+    const seed = (star.x * 12.9898 + star.y * 78.233) % 1000;
+    const angle = (seed / 1000) * Math.PI * 2;
     
-    // Determine the star's "initial phase" based on its static position
-    // This ensures that when driftOffset is 0, the star is at its original position
-    // We use the inverse of the perspective curve (sqrt) to map distance to phase
-    const initialPhase = Math.sqrt(dist / maxDist);
+    // Initial phase based on another stable property (twinkleOffset is random)
+    const initialPhase = (star.twinkleOffset / (Math.PI * 2)) % 1;
     
     // Closer stars (higher parallax) move faster through the field
     const speed = 0.2 + star.parallaxFactor * 0.5;
@@ -50,17 +48,20 @@ export const drawStars = (
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
     // Apply perspective curve: stars accelerate as they get closer (move to edge)
-    // Square function pushes stars towards the center (vanishing point) initially,
-    // then accelerates them outward, creating a 3D tunnel effect
-    const travelDist = maxDist * (depthPhase * depthPhase);
+    // Reduced power (1.5) to make distribution less clustered at center
+    const travelDist = maxDist * Math.pow(depthPhase, 1.5);
     
     // Calculate new position
     const streamX = centerX + Math.cos(angle) * travelDist;
     const streamY = centerY + Math.sin(angle) * travelDist;
     
+    // Always use the stream position (unified 3D coordinate system)
+    const baseX = streamX;
+    const baseY = streamY;
+    
     // Add mouse parallax
-    const drawX = streamX + mouseX * star.parallaxFactor * halfWidth;
-    const drawY = streamY + mouseY * star.parallaxFactor * halfHeight;
+    const drawX = baseX + mouseX * star.parallaxFactor * halfWidth;
+    const drawY = baseY + mouseY * star.parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
@@ -68,19 +69,18 @@ export const drawStars = (
     }
     
     // Size: scales with depth phase (closer = bigger)
-    const depthSize = 0.5 + depthPhase * 2.0; // Range: 0.5x to 2.5x
     // Always apply perspective scaling to maintain consistent 3D world
-    const sizeMultiplier = depthSize;
-    const drawSize = star.size * sizeMultiplier;
+    const depthSize = 0.5 + depthPhase * 2.0; // Range: 0.5x to 2.5x
+    const drawSize = star.size * depthSize;
     
     // Alpha: fade in/out at the ends of the cycle to prevent popping
     // Always apply fading to avoid hard cuts at center/edge
     let depthAlpha = 1;
-    if (depthPhase < 0.1) {
-      depthAlpha = depthPhase / 0.1;
+    if (depthPhase < 0.05) {
+      depthAlpha = depthPhase / 0.05;
     } 
-    else if (depthPhase > 0.9) {
-      depthAlpha = (1 - depthPhase) / 0.1;
+    else if (depthPhase > 0.95) {
+      depthAlpha = (1 - depthPhase) / 0.05;
     }
     
     const alpha = star.brightness * twinkle * depthAlpha;
@@ -168,14 +168,12 @@ export const drawGalaxies = (
       parallaxFactor, armPoints, starPoints
     } = galaxy;
     
-    // Calculate initial position properties relative to center
-    const dx = x - centerX;
-    const dy = y - centerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
+    // Use galaxy properties to generate a stable random angle and phase
+    const seed = (x * 12.9898 + y * 78.233) % 1000;
+    const angle = (seed / 1000) * Math.PI * 2;
     
-    // Determine initial phase from static position
-    const initialPhase = Math.sqrt(dist / maxDist);
+    // Initial phase based on rotation (stable property)
+    const initialPhase = (rotation / (Math.PI * 2)) % 1;
     
     // Galaxies move slower (they're far away background objects)
     const speed = 0.1 + parallaxFactor * 0.2;
@@ -183,16 +181,20 @@ export const drawGalaxies = (
     // Calculate current phase
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
     
-    // Apply perspective curve
-    const travelDist = maxDist * (depthPhase * depthPhase);
+    // Apply perspective curve (reduced power for less center clustering)
+    const travelDist = maxDist * Math.pow(depthPhase, 1.4);
     
     // Calculate new position
     const streamX = centerX + Math.cos(angle) * travelDist;
     const streamY = centerY + Math.sin(angle) * travelDist;
     
+    // Always use stream position
+    const baseX = streamX;
+    const baseY = streamY;
+    
     // Add parallax
-    const drawX = streamX + mouseX * parallaxFactor * halfWidth;
-    const drawY = streamY + mouseY * parallaxFactor * halfHeight;
+    const drawX = baseX + mouseX * parallaxFactor * halfWidth;
+    const drawY = baseY + mouseY * parallaxFactor * halfHeight;
     
     // Skip if off-screen
     if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
@@ -205,10 +207,10 @@ export const drawGalaxies = (
     
     // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.1) {
-      depthAlpha = depthPhase / 0.1;
-    } else if (depthPhase > 0.9) {
-      depthAlpha = (1 - depthPhase) / 0.1;
+    if (depthPhase < 0.05) {
+      depthAlpha = depthPhase / 0.05;
+    } else if (depthPhase > 0.95) {
+      depthAlpha = (1 - depthPhase) / 0.05;
     }
     const effectiveBrightness = brightness * depthAlpha;
     
