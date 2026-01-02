@@ -18,13 +18,21 @@ import {
   getRandomClusterColor,
   varyColor,
 } from './colorUtils';
+import type { PerformanceConfig } from './performanceUtils';
 
 /**
  * Initialize stars based on canvas dimensions with diverse sizes
+ * Density is adjusted by performance config
  */
-export const initStars = (width: number, height: number): Star[] => {
+export const initStars = (
+  width: number,
+  height: number,
+  performanceConfig?: PerformanceConfig
+): Star[] => {
   const stars: Star[] = [];
-  const numStars = Math.floor((width * height) / STAR_DENSITY_FACTOR);
+  const densityMultiplier = performanceConfig?.starDensityMultiplier ?? 1.0;
+  const adjustedDensityFactor = STAR_DENSITY_FACTOR / densityMultiplier;
+  const numStars = Math.floor((width * height) / adjustedDensityFactor);
   
   for (let i = 0; i < numStars; i++) {
     // More diverse size distribution - most stars are tiny, few are bright
@@ -141,8 +149,13 @@ export const createShootingStar = (width: number, height: number): ShootingStar 
 
 /**
  * Initialize galaxies with diverse sizes and colors
+ * Count is adjusted by performance config
  */
-export const initGalaxies = (width: number, height: number): Galaxy[] => {
+export const initGalaxies = (
+  width: number,
+  height: number,
+  performanceConfig?: PerformanceConfig
+): Galaxy[] => {
   const galaxies: Galaxy[] = [];
   
   // Scale galaxy count based on screen area relative to 1080p
@@ -151,8 +164,11 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
   const referenceArea = 1920 * 1080;
   const scaleFactor = Math.min(1.5, Math.max(0.3, screenArea / referenceArea));
   
-  const minG = Math.floor(MIN_GALAXIES * scaleFactor);
-  const maxG = Math.floor(MAX_GALAXIES * scaleFactor);
+  // Apply performance multiplier
+  const performanceMultiplier = performanceConfig?.galaxyCountMultiplier ?? 1.0;
+  
+  const minG = Math.floor(MIN_GALAXIES * scaleFactor * performanceMultiplier);
+  const maxG = Math.floor(MAX_GALAXIES * scaleFactor * performanceMultiplier);
   
   const numGalaxies = minG + Math.floor(Math.random() * (maxG - minG + 1));
   
@@ -287,8 +303,13 @@ export const initGalaxies = (width: number, height: number): Galaxy[] => {
 
 /**
  * Initialize nebulas with diverse sizes and colors
+ * Count is adjusted by performance config
  */
-export const initNebulas = (width: number, height: number): Nebula[] => {
+export const initNebulas = (
+  width: number,
+  height: number,
+  performanceConfig?: PerformanceConfig
+): Nebula[] => {
   const nebulas: Nebula[] = [];
   
   // Scale nebula count based on screen area relative to 1080p
@@ -296,8 +317,11 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
   const referenceArea = 1920 * 1080;
   const scaleFactor = Math.min(1.5, Math.max(0.4, screenArea / referenceArea));
   
-  const minN = Math.floor(MIN_NEBULAS * scaleFactor);
-  const maxN = Math.floor(MAX_NEBULAS * scaleFactor);
+  // Apply performance multiplier
+  const performanceMultiplier = performanceConfig?.nebulaCountMultiplier ?? 1.0;
+  
+  const minN = Math.floor(MIN_NEBULAS * scaleFactor * performanceMultiplier);
+  const maxN = Math.floor(MAX_NEBULAS * scaleFactor * performanceMultiplier);
   
   const numNebulas = minN + Math.floor(Math.random() * (maxN - minN + 1));
   
@@ -586,10 +610,19 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
 
 /**
  * Initialize star clusters
+ * Count is adjusted by performance config
  */
-export const initStarClusters = (width: number, height: number): import('./types').StarCluster[] => {
+export const initStarClusters = (
+  width: number,
+  height: number,
+  performanceConfig?: PerformanceConfig
+): import('./types').StarCluster[] => {
   const clusters: import('./types').StarCluster[] = [];
-  const numClusters = 5 + Math.floor(Math.random() * 10); // 5-15 clusters
+  
+  // Apply performance multiplier
+  const performanceMultiplier = performanceConfig?.clusterCountMultiplier ?? 1.0;
+  const baseCount = 5 + Math.floor(Math.random() * 10); // 5-15 clusters
+  const numClusters = Math.max(1, Math.floor(baseCount * performanceMultiplier));
   
   for (let i = 0; i < numClusters; i++) {
     const type = Math.random() < 0.7 ? 'open' : 'globular';
