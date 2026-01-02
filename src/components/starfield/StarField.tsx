@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { FC } from 'react';
-import type { ShootingStar, Galaxy, Nebula } from './types';
-import { initStars, initGalaxies, initNebulas, createShootingStar, getNextShootingStarDelay } from './generators';
-import { drawShootingStars, drawGalaxies, drawNebulas } from './drawFunctions';
+import type { Galaxy, Nebula } from './types';
+import { initStars, initGalaxies, initNebulas } from './generators';
+import { drawGalaxies, drawNebulas } from './drawFunctions';
 import { VERTEX_SHADER, FRAGMENT_SHADER } from './shaders';
 import {
   initWebGL,
@@ -35,7 +35,6 @@ const DENSITY_CONFIG = {
   starDensityMultiplier: 1.2,
   galaxyCountMultiplier: 2.5,
   nebulaCountMultiplier: 3.0,
-  maxShootingStars: 5,
 };
 
 let performanceLogged = false;
@@ -96,8 +95,6 @@ const StarField: FC = () => {
     // Celestial objects (2D canvas)
     let galaxies: Galaxy[] = [];
     let nebulas: Nebula[] = [];
-    let shootingStars: ShootingStar[] = [];
-    let nextShootingStarTime = 5 + Math.random() * 10;
     
     // FPS tracking
     let frameCount = 0;
@@ -162,17 +159,10 @@ const StarField: FC = () => {
       gl.clear(gl.COLOR_BUFFER_BIT);
       gl.drawArrays(gl.POINTS, 0, particleCount);
       
-      // --- 2D Canvas: Draw Galaxies, Nebulas, Shooting Stars ---
+      // --- 2D Canvas: Draw Galaxies and Nebulas ---
       ctx2d.clearRect(0, 0, overlay.width, overlay.height);
       drawNebulas(ctx2d, nebulas, 0, 0, overlay.width, overlay.height, driftOffset, 1);
       drawGalaxies(ctx2d, galaxies, 0, 0, overlay.width, overlay.height, driftOffset, 1);
-      
-      // Shooting stars
-      if (time >= nextShootingStarTime && shootingStars.length < DENSITY_CONFIG.maxShootingStars) {
-        shootingStars.push(createShootingStar(overlay.width, overlay.height));
-        nextShootingStarTime = time + getNextShootingStarDelay();
-      }
-      shootingStars = drawShootingStars(ctx2d, shootingStars, 0, 0, overlay.width, overlay.height);
 
       // FPS Counter
       if (window.showFps) {
