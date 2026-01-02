@@ -7,8 +7,9 @@ import './App.css';
 function App() {
   const [driftAmount, setDriftAmount] = useState(0);
   
-  // Content fades to 30% opacity when drifting
-  const contentOpacity = 1 - driftAmount * 0.7;
+  // Content fades to 30% opacity when drifting (disabled on mobile)
+  const isMobile = window.matchMedia('(max-width: 768px)').matches;
+  const contentOpacity = isMobile ? 1 : 1 - driftAmount * 0.7;
 
   return (
     <div className="app">
@@ -25,7 +26,7 @@ function App() {
         className="content-fade-wrapper"
         style={{ 
           opacity: contentOpacity,
-          transition: 'opacity 0.3s ease-out'
+          transition: 'opacity 1s ease-out'
         }}
       >
         <main className="content">
