@@ -99,7 +99,7 @@ export const getPerformanceConfig = (tier?: PerformanceTier): PerformanceConfig 
     case 'low':
       return {
         tier: 'low',
-        starDensityMultiplier: 0.3,      // 30% of base density
+        starDensityMultiplier: 0.5,      // 50% of base density
         galaxyCountMultiplier: 0.25,     // 25% of base count
         nebulaCountMultiplier: 0.4,      // 40% of base count
         clusterCountMultiplier: 0.3,     // 30% of base count
@@ -109,7 +109,7 @@ export const getPerformanceConfig = (tier?: PerformanceTier): PerformanceConfig 
     case 'medium':
       return {
         tier: 'medium',
-        starDensityMultiplier: 0.5,      // 50% of base density (reduced default)
+        starDensityMultiplier: 1.0,      // 100% of base density
         galaxyCountMultiplier: 0.5,      // 50% of base count
         nebulaCountMultiplier: 0.6,      // 60% of base count
         clusterCountMultiplier: 0.5,     // 50% of base count
@@ -119,7 +119,7 @@ export const getPerformanceConfig = (tier?: PerformanceTier): PerformanceConfig 
     case 'high':
       return {
         tier: 'high',
-        starDensityMultiplier: 1.1,      // 110% of base density
+        starDensityMultiplier: 2.0,      // 200% of base density
         galaxyCountMultiplier: 1.2,      // 120% of base count
         nebulaCountMultiplier: 1.3,      // 130% of base count
         clusterCountMultiplier: 1.1,     // 110% of base count
