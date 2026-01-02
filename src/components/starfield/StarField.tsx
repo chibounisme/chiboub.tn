@@ -10,7 +10,7 @@ import './StarField.css';
 const IDLE_THRESHOLD = 2; // Seconds of idle before space travel starts
 const DRIFT_SPEED = 0.05; // Speed of forward movement (increased for better effect)
 const DRIFT_FADE_IN_DURATION = 3.0; // Seconds to fully accelerate (thrusters up)
-const DRIFT_FADE_OUT_DURATION = 0.8; // Seconds to fully decelerate (quick stop)
+const DRIFT_FADE_OUT_DURATION = 0.4; // Seconds to fully decelerate (quick stop)
 
 // Easing functions for smooth transitions
 // Ease-in: slow start, accelerate (like a spaceship powering up)
