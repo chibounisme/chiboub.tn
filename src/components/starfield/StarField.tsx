@@ -13,6 +13,11 @@ declare global {
   }
 }
 
+// Enable FPS by default in dev mode
+if (import.meta.env.DEV) {
+  window.showFps = true;
+}
+
 // Autopilot/drift configuration
 const DRIFT_SPEED = 0.05; // Speed of forward movement
 
