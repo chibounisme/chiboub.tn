@@ -161,3 +161,12 @@ export interface StarCluster {
   rotation: number;
   type: 'open' | 'globular';
 }
+
+// Performance configuration for density control
+export interface PerformanceConfig {
+  starDensityMultiplier: number;
+  galaxyCountMultiplier: number;
+  nebulaCountMultiplier: number;
+  clusterCountMultiplier?: number;
+  maxShootingStars: number;
+}

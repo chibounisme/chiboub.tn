@@ -2,7 +2,7 @@
 export { default as StarField } from './StarField';
 export { default } from './StarField';
 
-// Type exports
+// Type exports (only types actually used)
 export type {
   Color,
   Star,
@@ -10,20 +10,5 @@ export type {
   Galaxy,
   GalaxyType,
   Nebula,
-  NebulaLayer,
-  NebulaBlob,
-  NebulaFilament,
-  DustParticle,
-  DustLane,
-  EmbeddedStar,
-  ArmPoint,
-  StarPoint,
   NebulaType,
 } from './types';
-
-// Utility exports (if needed externally)
-export * from './colorUtils';
-export * from './generators';
-export * from './drawFunctions';
-export * from './constants';
-export * from './performanceUtils';

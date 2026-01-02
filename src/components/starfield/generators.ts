@@ -1,4 +1,4 @@
-import type { Star, ShootingStar, Galaxy, Nebula, GalaxyType, NebulaType } from './types';
+import type { Star, ShootingStar, Galaxy, Nebula, GalaxyType, NebulaType, PerformanceConfig } from './types';
 import {
   STAR_DENSITY_FACTOR,
   GALAXY_TYPES,
@@ -6,8 +6,6 @@ import {
   MAX_GALAXIES,
   MIN_NEBULAS,
   MAX_NEBULAS,
-  MIN_NEBULA_SIZE,
-  MAX_NEBULA_SIZE,
   NEBULA_TYPES,
   NEBULA_PALETTES,
 } from './constants';
@@ -18,7 +16,6 @@ import {
   getRandomClusterColor,
   varyColor,
 } from './colorUtils';
-import type { PerformanceConfig } from './performanceUtils';
 
 /**
  * Initialize stars based on canvas dimensions with diverse sizes
