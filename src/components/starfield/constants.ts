@@ -222,8 +222,8 @@ export const GALAXY_TYPES = [
 ] as const;
 
 // Star density factor (pixels per star) - lower = more stars
-// Increased from 250 to reduce default density
-export const STAR_DENSITY_FACTOR = 500;
+// Decreased to increase density significantly
+export const STAR_DENSITY_FACTOR = 200;
 
 // Shooting star timing
 export const SHOOTING_STAR_MIN_DELAY = 5;
