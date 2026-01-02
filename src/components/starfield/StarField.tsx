@@ -3,6 +3,7 @@ import type { FC } from 'react';
 import type { Star, ShootingStar, Galaxy, Nebula } from './types';
 import { initStars, initGalaxies, initNebulas, createShootingStar, getNextShootingStarDelay } from './generators';
 import { drawStars, drawShootingStars, drawGalaxies, drawNebulas, drawBackground } from './drawFunctions';
+import { getPerformanceConfig, logPerformanceInfo } from './performanceUtils';
 import './StarField.css';
 
 // Autopilot/drift configuration
@@ -37,6 +38,10 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Detect performance and get config
+    const performanceConfig = getPerformanceConfig();
+    logPerformanceInfo(); // Log for debugging
+
     let animationFrameId: number;
     let stars: Star[] = [];
     let shootingStars: ShootingStar[] = [];
@@ -69,9 +74,9 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     const resizeCanvas = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      galaxies = initGalaxies(canvas.width, canvas.height);
-      nebulas = initNebulas(canvas.width, canvas.height);
-      stars = initStars(canvas.width, canvas.height);
+      galaxies = initGalaxies(canvas.width, canvas.height, performanceConfig);
+      nebulas = initNebulas(canvas.width, canvas.height, performanceConfig);
+      stars = initStars(canvas.width, canvas.height, performanceConfig);
     };
 
     const animate = (timestamp: number) => {
@@ -126,11 +131,12 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       drawStars(ctx, stars, time, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
       
       // Only show shooting stars when not in space travel mode
+      // Limit based on performance config
       if (driftAmount < 0.5) {
         shootingStars = drawShootingStars(ctx, shootingStars, mouseX, mouseY, canvas.width, canvas.height);
 
-        // Spawn shooting star at intervals
-        if (time >= nextShootingStarTime) {
+        // Spawn shooting star at intervals (respecting max count)
+        if (time >= nextShootingStarTime && shootingStars.length < performanceConfig.maxShootingStars) {
           shootingStars.push(createShootingStar(canvas.width, canvas.height));
           nextShootingStarTime = time + getNextShootingStarDelay();
         }
