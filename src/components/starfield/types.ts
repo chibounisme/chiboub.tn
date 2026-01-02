@@ -114,7 +114,7 @@ export interface EmbeddedStar {
   color: Color;
 }
 
-export type NebulaType = 'emission' | 'reflection' | 'dark' | 'planetary' | 'supernova' | 'butterfly' | 'hourglass' | 'twin-jet' | 'ring';
+export type NebulaType = 'emission' | 'reflection' | 'dark' | 'planetary' | 'supernova' | 'butterfly' | 'hourglass' | 'twin-jet' | 'ring' | 'egg' | 'eye';
 
 export interface Nebula {
   x: number;
