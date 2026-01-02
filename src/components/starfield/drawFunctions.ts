@@ -27,19 +27,16 @@ export const drawStars = (
   // Maximum distance from center to corner
   const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
   
+  // Constant speed for all stars (no parallax)
+  const speed = 0.2;
+
   for (let i = 0; i < stars.length; i++) {
     const star = stars[i];
     const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
     
-    // Use star properties to generate a stable random angle and phase
-    const seed = (star.x * 12.9898 + star.y * 78.233) % 1000;
-    const angle = (seed / 1000) * Math.PI * 2;
-    
-    // Initial phase based on another stable property
-    const initialPhase = (star.twinkleOffset / (Math.PI * 2)) % 1;
-    
-    // Constant speed for all stars (no parallax)
-    const speed = 0.2;
+    // Use pre-calculated angle and phase
+    const angle = star.angle;
+    const initialPhase = star.initialPhase;
     
     // Calculate current phase based on travel
     const depthPhase = (initialPhase + driftOffset * speed) % 1;
@@ -72,10 +69,18 @@ export const drawStars = (
     
     const alpha = star.brightness * twinkle * depthAlpha;
     
-    ctx.beginPath();
-    ctx.arc(drawX, drawY, drawSize, 0, Math.PI * 2);
+    // Optimization: Use fillRect for small stars and avoid state changes if possible
+    // But since color/alpha changes per star, we have to set fillStyle.
+    // However, fillRect is faster than arc + fill.
     ctx.fillStyle = `rgba(${star.color.r}, ${star.color.g}, ${star.color.b}, ${alpha})`;
-    ctx.fill();
+    
+    if (drawSize < 2) {
+      ctx.fillRect(drawX, drawY, drawSize, drawSize);
+    } else {
+      ctx.beginPath();
+      ctx.arc(drawX, drawY, drawSize, 0, Math.PI * 2);
+      ctx.fill();
+    }
   }
 };
 
@@ -578,8 +583,16 @@ export const drawStarClusters = (
 export const drawBackground = (
   ctx: CanvasRenderingContext2D,
   width: number,
-  height: number
+  height: number,
+  quality: number = 1.0
 ): void => {
+  // Optimization: Use solid color for low quality/performance
+  if (quality < 0.8) {
+    ctx.fillStyle = '#020205';
+    ctx.fillRect(0, 0, width, height);
+    return;
+  }
+
   const bgGradient = ctx.createRadialGradient(
     width * 0.5, height * 0.5, 0,
     width * 0.5, height * 0.5, width * 0.8

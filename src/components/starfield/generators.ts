@@ -60,6 +60,13 @@ export const initStars = (
     
     // Twinkle speed varies - smaller stars twinkle faster
     const twinkleSpeed = 0.01 + Math.random() * 0.05 + (1 - size / 3) * 0.02;
+    const twinkleOffset = Math.random() * Math.PI * 2;
+
+    // Pre-calculate angle and phase for performance
+    // Use star properties to generate a stable random angle and phase
+    // We can just use random here since we are initializing
+    const angle = Math.random() * Math.PI * 2;
+    const initialPhase = Math.random(); // 0 to 1
     
     stars.push({
       x: Math.random() * width,
@@ -67,9 +74,11 @@ export const initStars = (
       size,
       brightness,
       twinkleSpeed,
-      twinkleOffset: Math.random() * Math.PI * 2,
+      twinkleOffset,
       color: getRandomStarColor(),
       parallaxFactor,
+      angle,
+      initialPhase,
     });
   }
   
