@@ -51,6 +51,12 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     let lastTimestamp = 0;
     let nextShootingStarTime = 5 + Math.random() * 10;
     
+    // Performance monitoring
+    let frameCount = 0;
+    let lastFpsCheck = 0;
+    let currentFps = 60;
+    let quality = 1.0; // 0.1 to 1.0
+    
     // Mouse position for parallax effect
     let mouseX = 0;
     let mouseY = 0;
@@ -72,8 +78,15 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     };
 
     const resizeCanvas = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      // Limit pixel ratio for performance on high-DPI screens
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = window.innerWidth * dpr;
+      canvas.height = window.innerHeight * dpr;
+      
+      // Scale context to match
+      // ctx.scale(dpr, dpr); // No, we want to draw in full res pixels for crisp stars
+      
+      // Re-init objects with new dimensions
       galaxies = initGalaxies(canvas.width, canvas.height, performanceConfig);
       nebulas = initNebulas(canvas.width, canvas.height, performanceConfig);
       stars = initStars(canvas.width, canvas.height, performanceConfig);
@@ -84,6 +97,21 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       const deltaTime = (timestamp - lastTimestamp) / 1000;
       lastTimestamp = timestamp;
       time += deltaTime;
+      
+      // FPS Calculation and Adaptive Quality
+      frameCount++;
+      if (timestamp - lastFpsCheck >= 1000) {
+        currentFps = frameCount;
+        frameCount = 0;
+        lastFpsCheck = timestamp;
+        
+        // Adjust quality based on FPS
+        if (currentFps < 30 && quality > 0.2) {
+          quality -= 0.1;
+        } else if (currentFps > 55 && quality < 1.0) {
+          quality += 0.05;
+        }
+      }
       
       // Update drift state based on idle time
       const idleTime = time - lastMouseMoveTime;
@@ -123,16 +151,26 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       mouseY += (targetMouseY - mouseY) * lerpFactor;
 
       // Draw background
-      drawBackground(ctx, canvas.width, canvas.height);
+      drawBackground(ctx, canvas.width, canvas.height, quality);
       
       // Draw celestial objects (back to front) with drift parameters
-      drawNebulas(ctx, nebulas, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
-      drawGalaxies(ctx, galaxies, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
-      drawStars(ctx, stars, time, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
+      // Apply quality reduction by slicing arrays
+      const activeNebulas = quality < 0.5 ? [] : nebulas; // Hide nebulas on low quality
+      const activeGalaxies = quality < 0.8 ? [] : galaxies; // Hide galaxies on medium/low quality
+      const activeStars = stars.slice(0, Math.floor(stars.length * quality));
+      
+      if (quality > 0.5) {
+          drawNebulas(ctx, activeNebulas, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
+      }
+      if (quality > 0.8) {
+          drawGalaxies(ctx, activeGalaxies, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
+      }
+      
+      drawStars(ctx, activeStars, time, mouseX, mouseY, canvas.width, canvas.height, driftOffset, driftAmount);
       
       // Only show shooting stars when not in space travel mode
       // Limit based on performance config
-      if (driftAmount < 0.5) {
+      if (driftAmount < 0.5 && quality > 0.6) {
         shootingStars = drawShootingStars(ctx, shootingStars, mouseX, mouseY, canvas.width, canvas.height);
 
         // Spawn shooting star at intervals (respecting max count)
