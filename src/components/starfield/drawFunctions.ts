@@ -54,14 +54,17 @@ export const drawStars = (
     }
     
     // Size: slight scaling to give depth hint without extreme perspective
-    const depthSize = 0.5 + depthPhase * 1.0; 
+    // Start much smaller to avoid "popping" at the center
+    const depthSize = 0.1 + depthPhase * 1.4; 
     const drawSize = star.size * depthSize;
     
     // Alpha: Fade in gradually from center to hide the "source"
     // This creates the illusion of a tunnel with an open end
     let depthAlpha = 1;
-    if (depthPhase < 0.3) {
-      depthAlpha = depthPhase / 0.3;
+    if (depthPhase < 0.4) {
+      // Smoother quadratic ease-in
+      const t = depthPhase / 0.4;
+      depthAlpha = t * t;
     } 
     else if (depthPhase > 0.95) {
       depthAlpha = (1 - depthPhase) / 0.05;
@@ -186,13 +189,15 @@ export const drawGalaxies = (
     }
     
     // Size: slight scaling
-    const depthSize = 0.5 + depthPhase * 1.0;
+    // Start smaller for smoother entry
+    const depthSize = 0.1 + depthPhase * 1.4;
     const sizeMultiplier = depthSize;
     
     // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.3) {
-      depthAlpha = depthPhase / 0.3;
+    if (depthPhase < 0.4) {
+      const t = depthPhase / 0.4;
+      depthAlpha = t * t; // Quadratic ease-in
     } else if (depthPhase > 0.95) {
       depthAlpha = (1 - depthPhase) / 0.05;
     }
@@ -370,13 +375,15 @@ export const drawNebulas = (
     }
     
     // Size: slight scaling
-    const depthSize = 0.5 + depthPhase * 1.0;
+    // Start smaller for smoother entry
+    const depthSize = 0.1 + depthPhase * 1.4;
     const sizeMultiplier = depthSize;
     
     // Alpha: fade in/out
     let depthAlpha = 1;
-    if (depthPhase < 0.3) {
-      depthAlpha = depthPhase / 0.3;
+    if (depthPhase < 0.4) {
+      const t = depthPhase / 0.4;
+      depthAlpha = t * t; // Quadratic ease-in
     } else if (depthPhase > 0.95) {
       depthAlpha = (1 - depthPhase) / 0.05;
     }
