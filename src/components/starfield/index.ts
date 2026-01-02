@@ -18,6 +18,7 @@ export type {
   EmbeddedStar,
   ArmPoint,
   StarPoint,
+  NebulaType,
 } from './types';
 
 // Utility exports (if needed externally)
@@ -25,3 +26,4 @@ export * from './colorUtils';
 export * from './generators';
 export * from './drawFunctions';
 export * from './constants';
+export * from './performanceUtils';
