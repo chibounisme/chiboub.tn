@@ -1,5 +1,5 @@
 import type { Color } from './types';
-import { STAR_COLORS, STAR_COLOR_WEIGHTS, SHOOTING_STAR_COLORS, GALAXY_COLOR_PALETTES, CLUSTER_COLOR_PALETTES } from './constants';
+import { STAR_COLORS, STAR_COLOR_WEIGHTS, GALAXY_COLOR_PALETTES, CLUSTER_COLOR_PALETTES } from './constants';
 
 /**
  * Get a random star color with unique per-star variation
@@ -23,20 +23,6 @@ export const getRandomStarColor = (): Color => {
     r: Math.min(255, Math.max(0, baseColor.r + Math.floor((Math.random() - 0.5) * 20))),
     g: Math.min(255, Math.max(0, baseColor.g + Math.floor((Math.random() - 0.5) * 20))),
     b: Math.min(255, Math.max(0, baseColor.b + Math.floor((Math.random() - 0.5) * 20))),
-  };
-};
-
-/**
- * Get a random shooting star color with unique variation
- */
-export const getRandomShootingStarColor = (): Color => {
-  const baseColor = SHOOTING_STAR_COLORS[Math.floor(Math.random() * SHOOTING_STAR_COLORS.length)];
-  
-  // Add variation for uniqueness
-  return {
-    r: Math.min(255, Math.max(0, baseColor.r + Math.floor((Math.random() - 0.5) * 30))),
-    g: Math.min(255, Math.max(0, baseColor.g + Math.floor((Math.random() - 0.5) * 30))),
-    b: Math.min(255, Math.max(0, baseColor.b + Math.floor((Math.random() - 0.5) * 30))),
   };
 };
 
