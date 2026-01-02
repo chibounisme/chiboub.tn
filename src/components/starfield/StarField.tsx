@@ -7,29 +7,10 @@ import { getPerformanceConfig, logPerformanceInfo } from './performanceUtils';
 import './StarField.css';
 
 // Autopilot/drift configuration
-const IDLE_THRESHOLD = 2; // Seconds of idle before space travel starts
-const DRIFT_SPEED = 0.05; // Speed of forward movement (increased for better effect)
-const DRIFT_FADE_IN_DURATION = 3.0; // Seconds to fully accelerate (thrusters up)
-const DRIFT_FADE_OUT_DURATION = 0.4; // Seconds to fully decelerate (quick stop)
+const DRIFT_SPEED = 0.05; // Speed of forward movement
 
-// Easing functions for smooth transitions
-// Ease-in: slow start, accelerate (like a spaceship powering up)
-const easeInQuad = (t: number): number => t * t;
-// Ease-out with bezier-like curve: fast initial deceleration, then gradual stop
-const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
-
-interface StarFieldProps {
-  onDriftChange?: (driftAmount: number) => void;
-}
-
-const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
+const StarField: FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const onDriftChangeRef = useRef(onDriftChange);
-  
-  // Keep ref updated with latest callback
-  useEffect(() => {
-    onDriftChangeRef.current = onDriftChange;
-  }, [onDriftChange]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -64,17 +45,12 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
     let targetMouseY = 0;
     
     // Space travel / autopilot state
-    let lastMouseMoveTime = 0; // Start with active state (wait for idle)
-    let driftAmount = 0; // Start with no drift
-    let driftProgress = 0; // Start with no progress
     let driftOffset = 0; // Accumulated travel distance (0-1, wraps)
-    let lastReportedDrift = -1; // Track last reported value to avoid redundant updates
-    let isDrifting = false; // Start not drifting
+    const driftAmount = 1; // Always full speed
 
     const handleMouseMove = (e: MouseEvent) => {
       targetMouseX = (e.clientX / window.innerWidth - 0.5) * 2;
       targetMouseY = (e.clientY / window.innerHeight - 0.5) * 2;
-      lastMouseMoveTime = time; // Reset idle timer on mouse move
     };
 
     const resizeCanvas = () => {
@@ -82,9 +58,6 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       canvas.width = window.innerWidth * dpr;
       canvas.height = window.innerHeight * dpr;
-      
-      // Scale context to match
-      // ctx.scale(dpr, dpr); // No, we want to draw in full res pixels for crisp stars
       
       // Re-init objects with new dimensions
       galaxies = initGalaxies(canvas.width, canvas.height, performanceConfig);
@@ -111,32 +84,6 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
         } else if (currentFps > 55 && quality < 1.0) {
           quality += 0.05;
         }
-      }
-      
-      // Update drift state based on idle time
-      const idleTime = time - lastMouseMoveTime;
-      const shouldDrift = idleTime > IDLE_THRESHOLD;
-      
-      if (shouldDrift) {
-        isDrifting = true;
-        // Fade in drift with smooth ease-in
-        driftProgress = Math.min(1, driftProgress + deltaTime / DRIFT_FADE_IN_DURATION);
-        driftAmount = easeInQuad(driftProgress);
-      } else if (isDrifting || driftProgress > 0) {
-        // Fade out drift with smooth bezier-like ease-out
-        driftProgress = Math.max(0, driftProgress - deltaTime / DRIFT_FADE_OUT_DURATION);
-        // Apply ease-out to the remaining progress for smooth deceleration
-        driftAmount = easeOutCubic(driftProgress);
-        if (driftProgress <= 0) {
-          isDrifting = false;
-        }
-      }
-      
-      // Notify parent of drift state changes (throttled to avoid excessive re-renders)
-      const roundedDrift = Math.round(driftAmount * 100) / 100;
-      if (roundedDrift !== lastReportedDrift && onDriftChangeRef.current) {
-        lastReportedDrift = roundedDrift;
-        onDriftChangeRef.current(driftAmount);
       }
       
       // Accumulate drift offset - scaled by driftAmount for smooth acceleration/deceleration
@@ -170,7 +117,7 @@ const StarField: FC<StarFieldProps> = ({ onDriftChange }) => {
       
       // Only show shooting stars when not in space travel mode
       // Limit based on performance config
-      if (driftAmount < 0.5 && quality > 0.6) {
+      if (quality > 0.6) {
         shootingStars = drawShootingStars(ctx, shootingStars, mouseX, mouseY, canvas.width, canvas.height);
 
         // Spawn shooting star at intervals (respecting max count)
