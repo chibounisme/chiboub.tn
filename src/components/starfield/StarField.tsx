@@ -21,6 +21,8 @@ if (import.meta.env.DEV) {
 // Autopilot/drift configuration
 const DRIFT_SPEED = 0.05; // Speed of forward movement
 
+let performanceLogged = false;
+
 const StarField: FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -33,7 +35,12 @@ const StarField: FC = () => {
 
     // Detect performance and get config
     const performanceConfig = getPerformanceConfig();
-    logPerformanceInfo(); // Log for debugging
+    
+    // Log only once
+    if (!performanceLogged) {
+      logPerformanceInfo(); // Log for debugging
+      performanceLogged = true;
+    }
 
     let animationFrameId: number;
     let stars: Star[] = [];
