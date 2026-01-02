@@ -5,12 +5,6 @@ import { GitHubIcon, LinkedInIcon, EmailIcon } from './components/Icons';
 import './App.css';
 
 function App() {
-  const [driftAmount, setDriftAmount] = useState(0);
-  
-  // Content fades to 30% opacity when drifting (disabled on mobile)
-  const isMobile = window.matchMedia('(max-width: 768px)').matches;
-  const contentOpacity = isMobile ? 1 : 1 - driftAmount * 0.7;
-
   return (
     <div className="app">
       <motion.div
@@ -19,16 +13,10 @@ function App() {
         transition={{ duration: 2.0, ease: "easeOut" }}
         style={{ position: 'absolute', inset: 0, zIndex: 0 }}
       >
-        <StarField onDriftChange={setDriftAmount} />
+        <StarField />
       </motion.div>
       
-      <div 
-        className="content-fade-wrapper"
-        style={{ 
-          opacity: contentOpacity,
-          transition: 'opacity 1s ease-out'
-        }}
-      >
+      <div className="content-fade-wrapper">
         <main className="content">
         <h1 className="name">
           Mohamed Chiboub
