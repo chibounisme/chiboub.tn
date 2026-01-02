@@ -15,6 +15,9 @@ export interface Star {
   twinkleOffset: number;
   color: Color;
   parallaxFactor: number;
+  // Pre-calculated values for performance
+  angle: number;
+  initialPhase: number;
 }
 
 export interface ShootingStar {
