@@ -107,9 +107,9 @@ void main() {
 
 const DRIFT_SPEED = 0.05; // Speed of forward movement through space
 const HIGH_DENSITY_CONFIG = {
-  starDensityMultiplier: 2.0,
-  galaxyCountMultiplier: 1.0,
-  nebulaCountMultiplier: 1.0,
+  starDensityMultiplier: 1.2,      // Slightly reduced stars
+  galaxyCountMultiplier: 2.5,      // More galaxies
+  nebulaCountMultiplier: 3.0,      // More nebulas
   maxShootingStars: 5,
 };
 
