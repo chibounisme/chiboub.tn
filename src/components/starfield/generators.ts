@@ -1,4 +1,4 @@
-import type { Star, ShootingStar, Galaxy, Nebula, GalaxyType, NebulaType, PerformanceConfig } from './types';
+import type { Star, Galaxy, Nebula, GalaxyType, NebulaType, PerformanceConfig } from './types';
 import {
   STAR_DENSITY_FACTOR,
   GALAXY_TYPES,
@@ -11,7 +11,6 @@ import {
 } from './constants';
 import {
   getRandomStarColor,
-  getRandomShootingStarColor,
   getRandomGalaxyPalette,
   getRandomClusterColor,
   varyColor,
@@ -80,77 +79,6 @@ export const initStars = (
   }
   
   return stars;
-};
-
-/**
- * Create a new shooting star
- */
-export const createShootingStar = (width: number, height: number): ShootingStar => {
-  const edge = Math.floor(Math.random() * 4);
-  const margin = 50;
-  let startX: number, startY: number, angle: number;
-  
-  switch (edge) {
-    case 0: // From top
-      startX = Math.random() * width;
-      startY = -margin;
-      angle = Math.PI / 4 + Math.random() * Math.PI / 2;
-      break;
-    case 1: // From right
-      startX = width + margin;
-      startY = Math.random() * height;
-      angle = Math.PI * 0.6 + Math.random() * Math.PI * 0.6;
-      break;
-    case 2: // From bottom
-      startX = Math.random() * width;
-      startY = height + margin;
-      angle = -Math.PI / 4 - Math.random() * Math.PI / 2;
-      break;
-    case 3: // From left
-    default:
-      startX = -margin;
-      startY = Math.random() * height;
-      angle = -Math.PI / 4 + Math.random() * Math.PI / 2;
-      break;
-  }
-
-  // More varied shooting star characteristics
-  const speedRoll = Math.random();
-  let speed: number;
-  if (speedRoll < 0.3) {
-    speed = 3 + Math.random() * 5;  // Slow, graceful
-  } else if (speedRoll < 0.7) {
-    speed = 8 + Math.random() * 10; // Medium
-  } else {
-    speed = 18 + Math.random() * 12; // Fast, dramatic
-  }
-  
-  // Size varies - some are faint streaks, others are bright bolides
-  const sizeRoll = Math.random();
-  let size: number;
-  if (sizeRoll < 0.5) {
-    size = 0.5 + Math.random() * 1;   // Faint
-  } else if (sizeRoll < 0.85) {
-    size = 1.5 + Math.random() * 1.5; // Normal
-  } else {
-    size = 3 + Math.random() * 2;     // Bright bolide
-  }
-  
-  const length = 30 + speed * 6 + size * 15 + Math.random() * 50;
-
-  return {
-    x: startX,
-    y: startY,
-    angle,
-    speed,
-    length,
-    brightness: 0.6 + Math.random() * 0.4,
-    life: 1,
-    decay: 0.002 + Math.random() * 0.015 + (speed / 30) * 0.01,
-    size,
-    color: getRandomShootingStarColor(),
-    parallaxFactor: 0.06 + Math.random() * 0.06,
-  };
 };
 
 /**
@@ -684,11 +612,4 @@ export const initStarClusters = (
   }
   
   return clusters;
-};
-
-/**
- * Get the next shooting star delay (in seconds)
- */
-export const getNextShootingStarDelay = (): number => {
-  return 5 + Math.random() * 10;
 };

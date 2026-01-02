@@ -20,20 +20,6 @@ export interface Star {
   initialPhase: number;
 }
 
-export interface ShootingStar {
-  x: number;
-  y: number;
-  angle: number;
-  speed: number;
-  length: number;
-  brightness: number;
-  life: number;
-  decay: number;
-  size: number;
-  color: Color;
-  parallaxFactor: number;
-}
-
 export type GalaxyType = 'spiral' | 'barred-spiral' | 'elliptical' | 'irregular' | 'lenticular';
 
 export interface ArmPoint {

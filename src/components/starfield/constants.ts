@@ -68,23 +68,6 @@ export const STAR_COLOR_WEIGHTS = [
   0.05, 0.03, 0.02,        // Special types
 ];
 
-// Shooting star colors (based on meteor mineral composition)
-export const SHOOTING_STAR_COLORS: Color[] = [
-  { r: 255, g: 255, b: 255 }, // White - rocky composition
-  { r: 255, g: 250, b: 240 }, // Warm white - silicates
-  { r: 200, g: 255, b: 200 }, // Green - magnesium
-  { r: 150, g: 255, b: 150 }, // Bright green - nickel
-  { r: 255, g: 255, b: 100 }, // Yellow - sodium
-  { r: 255, g: 230, b: 150 }, // Yellow-orange - sodium
-  { r: 255, g: 200, b: 100 }, // Orange - sodium/iron
-  { r: 255, g: 160, b: 80 },  // Deep orange - iron
-  { r: 180, g: 220, b: 255 }, // Blue-white - iron
-  { r: 160, g: 200, b: 255 }, // Light blue - magnesium/iron
-  { r: 255, g: 100, b: 100 }, // Red - nitrogen/oxygen
-  { r: 255, g: 200, b: 150 }, // Peachy - atmospheric heating
-  { r: 200, g: 180, b: 255 }, // Violet - calcium
-];
-
 // Nebula Types - based on real planetary nebula morphologies
 export const NEBULA_TYPES = [
   'butterfly', 'hourglass', 'ring', 'egg', 'eye', 'twin-jet', 'supernova', 'emission', 'reflection'

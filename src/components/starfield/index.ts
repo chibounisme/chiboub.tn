@@ -6,7 +6,6 @@ export { default } from './StarField';
 export type {
   Color,
   Star,
-  ShootingStar,
   Galaxy,
   GalaxyType,
   Nebula,
