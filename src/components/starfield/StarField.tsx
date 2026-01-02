@@ -6,6 +6,13 @@ import { drawStars, drawShootingStars, drawGalaxies, drawNebulas, drawBackground
 import { getPerformanceConfig, logPerformanceInfo } from './performanceUtils';
 import './StarField.css';
 
+// Add global declaration for the FPS toggle
+declare global {
+  interface Window {
+    showFps: boolean;
+  }
+}
+
 // Autopilot/drift configuration
 const DRIFT_SPEED = 0.05; // Speed of forward movement
 
@@ -128,6 +135,15 @@ const StarField: FC = () => {
       } else {
         // Let existing shooting stars finish, but don't spawn new ones
         shootingStars = shootingStars.filter(s => s.life > 0);
+      }
+
+      // Draw FPS if enabled (Fraps style)
+      if (window.showFps) {
+        ctx.font = 'bold 48px monospace';
+        ctx.fillStyle = '#FFFF00'; // Yellow
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillText(Math.round(currentFps).toString(), 10, 10);
       }
       
       animationFrameId = requestAnimationFrame(animate);
