@@ -1,105 +1,16 @@
-import type { Star, ShootingStar, Galaxy, Nebula } from './types';
+import type { ShootingStar, Galaxy, Nebula } from './types';
 
 /**
- * Draw all stars with twinkling effect and optional space travel effect
- * 
- * Space travel simulation (warp/hyperspace effect):
- * - Stars stream outward from center (vanishing point) toward edges
- * - Each star has a unique phase offset for even distribution
- * - Phase cycles 0→1: star travels from center to edge, then resets
- * - Creates classic "warp speed" starfield effect
- */
-export const drawStars = (
-  ctx: CanvasRenderingContext2D,
-  stars: Star[],
-  time: number,
-  mouseX: number,
-  mouseY: number,
-  canvasWidth: number,
-  canvasHeight: number,
-  driftOffset: number = 0,
-  driftAmount: number = 0
-): void => {
-  const halfWidth = canvasWidth * 0.5;
-  const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
-  // Maximum distance from center to corner
-  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
-  
-  // Constant speed for all stars (no parallax)
-  const speed = 0.2;
-
-  for (let i = 0; i < stars.length; i++) {
-    const star = stars[i];
-    const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.4 + 0.6;
-    
-    // Use pre-calculated angle and phase
-    const angle = star.angle;
-    const initialPhase = star.initialPhase;
-    
-    // Calculate current phase based on travel
-    const depthPhase = (initialPhase + driftOffset * speed) % 1;
-    
-    // Linear motion (Constant visual speed)
-    const travelDist = maxDist * depthPhase;
-    
-    // Calculate new position
-    const drawX = centerX + Math.cos(angle) * travelDist;
-    const drawY = centerY + Math.sin(angle) * travelDist;
-    
-    // Skip if off-screen
-    if (drawX < -10 || drawX > canvasWidth + 10 || drawY < -10 || drawY > canvasHeight + 10) {
-      continue;
-    }
-    
-    // Size: slight scaling to give depth hint without extreme perspective
-    // Start much smaller to avoid "popping" at the center
-    const depthSize = 0.1 + depthPhase * 1.4; 
-    const drawSize = star.size * depthSize;
-    
-    // Alpha: Fade in gradually from center to hide the "source"
-    // This creates the illusion of a tunnel with an open end
-    let depthAlpha = 1;
-    if (depthPhase < 0.4) {
-      // Smoother quadratic ease-in
-      const t = depthPhase / 0.4;
-      depthAlpha = t * t;
-    } 
-    else if (depthPhase > 0.95) {
-      depthAlpha = (1 - depthPhase) / 0.05;
-    }
-    
-    const alpha = star.brightness * twinkle * depthAlpha;
-    
-    // Optimization: Use fillRect for small stars and avoid state changes if possible
-    // But since color/alpha changes per star, we have to set fillStyle.
-    // However, fillRect is faster than arc + fill.
-    ctx.fillStyle = `rgba(${star.color.r}, ${star.color.g}, ${star.color.b}, ${alpha})`;
-    
-    if (drawSize < 2) {
-      ctx.fillRect(drawX, drawY, drawSize, drawSize);
-    } else {
-      ctx.beginPath();
-      ctx.arc(drawX, drawY, drawSize, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-};
-
-/**
- * Update and draw shooting stars - optimized version
+ * Update and draw shooting stars
  */
 export const drawShootingStars = (
   ctx: CanvasRenderingContext2D,
   shootingStars: ShootingStar[],
-  mouseX: number,
-  mouseY: number,
-  canvasWidth: number,
-  canvasHeight: number
+  _mouseX: number,
+  _mouseY: number,
+  _canvasWidth: number,
+  _canvasHeight: number
 ): ShootingStar[] => {
-  const halfWidth = canvasWidth * 0.5;
-  const halfHeight = canvasHeight * 0.5;
   const activeStars = shootingStars.filter((star) => star.life > 0);
 
   for (let i = 0; i < activeStars.length; i++) {
@@ -137,22 +48,20 @@ export const drawShootingStars = (
 };
 
 /**
- * Draw all galaxies - with optional space travel effect (continuous warp)
+ * Draw all galaxies with space travel effect (continuous warp)
  */
 export const drawGalaxies = (
   ctx: CanvasRenderingContext2D,
   galaxies: Galaxy[],
-  mouseX: number,
-  mouseY: number,
+  _mouseX: number,
+  _mouseY: number,
   canvasWidth: number,
   canvasHeight: number,
   driftOffset: number = 0,
-  driftAmount: number = 0
+  _driftAmount: number = 0
 ): void => {
-  const halfWidth = canvasWidth * 0.5;
-  const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
+  const centerX = canvasWidth * 0.5;
+  const centerY = canvasHeight * 0.5;
   const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
   
   for (let g = 0; g < galaxies.length; g++) {
@@ -160,7 +69,7 @@ export const drawGalaxies = (
     const {
       x, y, size, rotation, brightness, type, inclination, arms,
       armTightness, armSpread, coreSize, coreColor, armColor, outerColor,
-      parallaxFactor, armPoints, starPoints
+      armPoints, starPoints
     } = galaxy;
     
     // Use galaxy properties to generate a stable random angle and phase
@@ -188,8 +97,7 @@ export const drawGalaxies = (
       continue;
     }
     
-    // Size: slight scaling
-    // Start smaller for smoother entry
+    // Size: slight scaling - start smaller for smoother entry
     const depthSize = 0.1 + depthPhase * 1.4;
     const sizeMultiplier = depthSize;
     
@@ -226,12 +134,12 @@ export const drawGalaxies = (
         const sx = star.x * size;
         const sy = star.y * size;
         const distFromCenter = Math.sqrt(star.x * star.x + star.y * star.y);
-        const alpha = effectiveBrightness * star.brightness * Math.max(0, 1 - distFromCenter * 0.8);
+        const starAlpha = effectiveBrightness * star.brightness * Math.max(0, 1 - distFromCenter * 0.8);
         
-        if (alpha > 0.02) {
+        if (starAlpha > 0.02) {
           ctx.beginPath();
           ctx.arc(sx, sy, star.size * 1.5, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${alpha})`;
+          ctx.fillStyle = `rgba(${coreColor.r}, ${coreColor.g}, ${coreColor.b}, ${starAlpha})`;
           ctx.fill();
         }
       }
@@ -241,11 +149,11 @@ export const drawGalaxies = (
         const star = starPoints[i];
         const sx = star.x * size;
         const sy = star.y * size;
-        const alpha = effectiveBrightness * star.brightness;
+        const starAlpha = effectiveBrightness * star.brightness;
         
         ctx.beginPath();
         ctx.arc(sx, sy, star.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${alpha})`;
+        ctx.fillStyle = `rgba(${armColor.r}, ${armColor.g}, ${armColor.b}, ${starAlpha})`;
         ctx.fill();
       }
       
@@ -271,14 +179,14 @@ export const drawGalaxies = (
           
           const colorBlend = t;
           const r = Math.floor(armColor.r * (1 - colorBlend) + outerColor.r * colorBlend);
-          const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
+          const gCol = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
           const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
           
-          const alpha = effectiveBrightness * (1 - t * 0.6) * 0.6;
+          const pointAlpha = effectiveBrightness * (1 - t * 0.6) * 0.6;
           
           ctx.beginPath();
           ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.fillStyle = `rgba(${r}, ${gCol}, ${b}, ${pointAlpha})`;
           ctx.fill();
         }
       }
@@ -303,14 +211,14 @@ export const drawGalaxies = (
           
           const colorBlend = t;
           const r = Math.floor(armColor.r * (1 - colorBlend) + outerColor.r * colorBlend);
-          const g = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
+          const gCol = Math.floor(armColor.g * (1 - colorBlend) + outerColor.g * colorBlend);
           const b = Math.floor(armColor.b * (1 - colorBlend) + outerColor.b * colorBlend);
           
-          const alpha = effectiveBrightness * (1 - t * 0.6) * 0.6;
+          const pointAlpha = effectiveBrightness * (1 - t * 0.6) * 0.6;
           
           ctx.beginPath();
           ctx.arc(armX, armY, dotSize, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+          ctx.fillStyle = `rgba(${r}, ${gCol}, ${b}, ${pointAlpha})`;
           ctx.fill();
         }
       }
@@ -321,29 +229,27 @@ export const drawGalaxies = (
 };
 
 /**
- * Draw all nebulas - with optional space travel effect (continuous warp)
+ * Draw all nebulas with space travel effect (continuous warp)
  */
 export const drawNebulas = (
   ctx: CanvasRenderingContext2D,
   nebulas: Nebula[],
-  mouseX: number,
-  mouseY: number,
+  _mouseX: number,
+  _mouseY: number,
   canvasWidth: number,
   canvasHeight: number,
   driftOffset: number = 0,
-  driftAmount: number = 0
+  _driftAmount: number = 0
 ): void => {
-  const halfWidth = canvasWidth * 0.5;
-  const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
+  const centerX = canvasWidth * 0.5;
+  const centerY = canvasHeight * 0.5;
   const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
   
   for (let n = 0; n < nebulas.length; n++) {
     const nebula = nebulas[n];
     const {
       x, y, size, brightness, color1, color2, color3, rotation,
-      layers, blobs, filaments, dustParticles, parallaxFactor
+      layers, blobs, filaments, dustParticles
     } = nebula;
     
     // Calculate initial position properties relative to center
@@ -353,7 +259,6 @@ export const drawNebulas = (
     const angle = Math.atan2(dy, dx);
     
     // Determine initial phase from static position
-    // Inverse of travelDist function: p = r/R (linear)
     const initialPhase = dist / maxDist;
     
     // Constant speed
@@ -374,8 +279,7 @@ export const drawNebulas = (
       continue;
     }
     
-    // Size: slight scaling
-    // Start smaller for smoother entry
+    // Size: slight scaling - start smaller for smoother entry
     const depthSize = 0.1 + depthPhase * 1.4;
     const sizeMultiplier = depthSize;
     
@@ -407,10 +311,10 @@ export const drawNebulas = (
         const blobX = offsetX + Math.cos(blob.angle) * blob.dist;
         const blobY = offsetY + Math.sin(blob.angle) * blob.dist * 0.7;
         
-        const alpha = effectiveBrightness * opacity * 0.15;
+        const blobAlpha = effectiveBrightness * opacity * 0.15;
         ctx.beginPath();
         ctx.arc(blobX, blobY, blob.size * 0.8, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+        ctx.fillStyle = `rgba(${color.r}, ${color.g}, ${color.b}, ${blobAlpha})`;
         ctx.fill();
       }
     }
@@ -471,7 +375,7 @@ export const drawNebulas = (
       // Bright core
       ctx.beginPath();
       ctx.arc(sx, sy, star.size * 0.8, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${star.brightness * 0.9})`; // Use star color for core too
+      ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${star.brightness * 0.9})`;
       ctx.fill();
     }
     
@@ -487,127 +391,4 @@ export const drawNebulas = (
     
     ctx.restore();
   }
-};
-
-/**
- * Draw star clusters
- */
-export const drawStarClusters = (
-  ctx: CanvasRenderingContext2D,
-  clusters: import('./types').StarCluster[],
-  mouseX: number,
-  mouseY: number,
-  canvasWidth: number,
-  canvasHeight: number,
-  driftOffset: number = 0,
-  driftAmount: number = 0,
-  time: number
-): void => {
-  const halfWidth = canvasWidth * 0.5;
-  const halfHeight = canvasHeight * 0.5;
-  const centerX = halfWidth;
-  const centerY = halfHeight;
-  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
-  
-  for (let c = 0; c < clusters.length; c++) {
-    const cluster = clusters[c];
-    const { x, y, size, brightness, stars, color, parallaxFactor, rotation } = cluster;
-    
-    // Calculate initial position properties relative to center
-    const dx = x - centerX;
-    const dy = y - centerY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-    
-    // Determine initial phase from static position
-    const initialPhase = dist / maxDist;
-    
-    // Constant speed
-    const speed = 0.15; // Slightly faster than galaxies
-    
-    // Calculate current phase
-    const depthPhase = (initialPhase + driftOffset * speed) % 1;
-    
-    // Linear motion
-    const travelDist = maxDist * depthPhase;
-    
-    // Calculate new position
-    const drawX = centerX + Math.cos(angle) * travelDist;
-    const drawY = centerY + Math.sin(angle) * travelDist;
-    
-    // Skip if off-screen
-    if (drawX < -size || drawX > canvasWidth + size || drawY < -size || drawY > canvasHeight + size) {
-      continue;
-    }
-    
-    // Size: slight scaling
-    const depthSize = 0.5 + depthPhase * 1.0;
-    const sizeMultiplier = depthSize;
-    
-    // Alpha: fade in/out
-    let depthAlpha = 1;
-    if (depthPhase < 0.3) {
-      depthAlpha = depthPhase / 0.3;
-    } else if (depthPhase > 0.95) {
-      depthAlpha = (1 - depthPhase) / 0.05;
-    }
-    const effectiveBrightness = brightness * depthAlpha;
-    
-    ctx.save();
-    ctx.translate(drawX, drawY);
-    ctx.rotate(rotation);
-    ctx.scale(sizeMultiplier, sizeMultiplier);
-    
-    // Draw cluster glow
-    const glowRadius = size * 1.2;
-    const glow = ctx.createRadialGradient(0, 0, 0, 0, 0, glowRadius);
-    glow.addColorStop(0, `rgba(${color.r}, ${color.g}, ${color.b}, ${effectiveBrightness * 0.15})`);
-    glow.addColorStop(1, `rgba(${color.r}, ${color.g}, ${color.b}, 0)`);
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(0, 0, glowRadius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw stars
-    for (let s = 0; s < stars.length; s++) {
-      const star = stars[s];
-      const twinkle = Math.sin(time * star.twinkleSpeed + star.twinkleOffset) * 0.3 + 0.7;
-      const alpha = effectiveBrightness * star.brightness * twinkle;
-      
-      ctx.beginPath();
-      ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${star.color.r}, ${star.color.g}, ${star.color.b}, ${alpha})`;
-      ctx.fill();
-    }
-    
-    ctx.restore();
-  }
-};
-
-/**
- * Draw the background gradient
- */
-export const drawBackground = (
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  quality: number = 1.0
-): void => {
-  // Optimization: Use solid color for low quality/performance
-  if (quality < 0.8) {
-    ctx.fillStyle = '#020205';
-    ctx.fillRect(0, 0, width, height);
-    return;
-  }
-
-  const bgGradient = ctx.createRadialGradient(
-    width * 0.5, height * 0.5, 0,
-    width * 0.5, height * 0.5, width * 0.8
-  );
-  bgGradient.addColorStop(0, '#0a0a10');
-  bgGradient.addColorStop(0.5, '#050508');
-  bgGradient.addColorStop(1, '#000000');
-  
-  ctx.fillStyle = bgGradient;
-  ctx.fillRect(0, 0, width, height);
 };
