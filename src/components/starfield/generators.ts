@@ -352,32 +352,66 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
       for (let b = 0; b < numBlobs; b++) {
         let angle: number, dist: number, size: number;
         
-        // Shape logic based on type
+        // Shape logic based on type - each creates distinctive morphology
         if (type === 'butterfly') {
-          // Two lobes at 0 and PI
+          // Two wing-like lobes at 0 and PI (like NGC 6302)
           const side = Math.random() < 0.5 ? 0 : Math.PI;
-          angle = side + (Math.random() - 0.5) * 1.0; // Cone spread
-          dist = layerSize * (0.2 + Math.random() * 0.6);
-          size = layerSize * (0.3 + Math.random() * 0.4);
+          angle = side + (Math.random() - 0.5) * 1.2; // Wide cone spread for wings
+          dist = layerSize * (0.2 + Math.random() * 0.7);
+          size = layerSize * (0.3 + Math.random() * 0.45);
         } else if (type === 'hourglass') {
-          // Two lobes but wider/conical
+          // Pinched hourglass with two conical lobes (like MyCn18)
           const side = Math.random() < 0.5 ? 0 : Math.PI;
           angle = side + (Math.random() - 0.5) * 1.5; // Wider cone
           dist = layerSize * (0.1 + Math.random() * 0.7);
           size = layerSize * (0.2 + Math.random() * 0.5);
         } else if (type === 'twin-jet') {
-          // Narrow jets along axis
+          // Narrow bipolar jets along axis
           const side = Math.random() < 0.5 ? 0 : Math.PI;
           angle = side + (Math.random() - 0.5) * 0.3; // Very narrow
           dist = layerSize * (0.1 + Math.random() * 0.9);
           size = layerSize * (0.1 + Math.random() * 0.3); // Smaller blobs
         } else if (type === 'ring') {
-          // Ring shape
+          // Torus/ring structure (like Ring Nebula M57)
           angle = Math.random() * Math.PI * 2;
-          dist = layerSize * (0.6 + Math.random() * 0.2); // Ring radius
+          dist = layerSize * (0.5 + Math.random() * 0.25); // Ring radius with variance
           size = layerSize * (0.2 + Math.random() * 0.3);
+        } else if (type === 'egg') {
+          // Egg/elliptical shape with asymmetric lobes and jets (like Egg Nebula)
+          // Central bulge with asymmetric extensions
+          const isJet = Math.random() < 0.3; // Some blobs form jets
+          if (isJet) {
+            const side = Math.random() < 0.5 ? 0 : Math.PI;
+            angle = side + (Math.random() - 0.5) * 0.2; // Narrow jets
+            dist = layerSize * (0.4 + Math.random() * 0.6);
+            size = layerSize * (0.1 + Math.random() * 0.2);
+          } else {
+            // Egg-shaped central region
+            angle = Math.random() * Math.PI * 2;
+            const eggFactor = 0.5 + 0.5 * Math.cos(angle); // More material in one direction
+            dist = layerSize * (0.1 + Math.random() * 0.4) * eggFactor;
+            size = layerSize * (0.25 + Math.random() * 0.35);
+          }
+        } else if (type === 'eye') {
+          // Eye-shaped with concentric shells (like Cat's Eye NGC 6543)
+          // Multiple shells/rings with bright core
+          const isShell = Math.random() < 0.7;
+          if (isShell) {
+            // Concentric oval shells
+            const shellRadius = 0.3 + Math.random() * 0.5;
+            angle = Math.random() * Math.PI * 2;
+            dist = layerSize * shellRadius;
+            // Thinner at poles, thicker at equator
+            const shellThickness = 0.15 + 0.1 * Math.abs(Math.sin(angle));
+            size = layerSize * shellThickness;
+          } else {
+            // Inner bright structures
+            angle = Math.random() * Math.PI * 2;
+            dist = layerSize * Math.random() * 0.25;
+            size = layerSize * (0.2 + Math.random() * 0.2);
+          }
         } else {
-          // Default cloud/supernova
+          // Default cloud/supernova - irregular structure
           angle = (b / numBlobs) * Math.PI * 2 + seed;
           dist = layerSize * 0.3 * Math.random();
           size = layerSize * (0.3 + Math.random() * 0.5);
@@ -420,13 +454,47 @@ export const initNebulas = (width: number, height: number): Nebula[] => {
         startDist = nebulaSize * 0.1;
         endDist = nebulaSize * (0.8 + Math.random() * 0.4); // Very long
       } else if (type === 'ring') {
-        // Filaments along the ring
+        // Filaments along the ring circumference
         startAngle = (f / numFilaments) * Math.PI * 2;
         endAngle = startAngle + Math.PI * 0.5;
         startDist = nebulaSize * 0.6;
         endDist = nebulaSize * 0.6;
+      } else if (type === 'egg') {
+        // Bipolar jets with asymmetric filaments
+        const isMainJet = f < 2;
+        if (isMainJet) {
+          // Main jets pointing outward
+          const side = f % 2 === 0 ? 0 : Math.PI;
+          startAngle = side;
+          endAngle = side + (Math.random() - 0.5) * 0.15;
+          startDist = nebulaSize * 0.2;
+          endDist = nebulaSize * (0.7 + Math.random() * 0.5); // Long jets
+        } else {
+          // Wispy filaments around the egg shell
+          startAngle = Math.random() * Math.PI * 2;
+          endAngle = startAngle + (Math.random() - 0.5) * 0.8;
+          startDist = nebulaSize * (0.3 + Math.random() * 0.2);
+          endDist = nebulaSize * (0.4 + Math.random() * 0.3);
+        }
+      } else if (type === 'eye') {
+        // Concentric shell structures with radial whiskers
+        const isShellArc = f < numFilaments * 0.6;
+        if (isShellArc) {
+          // Curved arcs following shells
+          const shellRadius = 0.4 + (f / numFilaments) * 0.4;
+          startAngle = (f / numFilaments) * Math.PI * 2;
+          endAngle = startAngle + Math.PI * (0.3 + Math.random() * 0.4);
+          startDist = nebulaSize * shellRadius;
+          endDist = nebulaSize * shellRadius;
+        } else {
+          // Radial whiskers/spokes
+          startAngle = Math.random() * Math.PI * 2;
+          endAngle = startAngle + (Math.random() - 0.5) * 0.2;
+          startDist = nebulaSize * 0.15;
+          endDist = nebulaSize * (0.5 + Math.random() * 0.3);
+        }
       } else {
-        // Random
+        // Random for emission/reflection/supernova
         startAngle = (f / numFilaments) * Math.PI * 2;
         endAngle = startAngle + Math.PI * (0.5 + Math.random() * 0.5);
         startDist = nebulaSize * 0.2;

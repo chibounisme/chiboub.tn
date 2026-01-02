@@ -85,9 +85,9 @@ export const SHOOTING_STAR_COLORS: Color[] = [
   { r: 200, g: 180, b: 255 }, // Violet - calcium
 ];
 
-// Nebula Types
+// Nebula Types - based on real planetary nebula morphologies
 export const NEBULA_TYPES = [
-  'butterfly', 'hourglass', 'supernova', 'twin-jet', 'ring', 'emission', 'reflection'
+  'butterfly', 'hourglass', 'ring', 'egg', 'eye', 'twin-jet', 'supernova', 'emission', 'reflection'
 ] as const;
 
 // Nebula Color Palettes by Type
@@ -121,6 +121,18 @@ export const NEBULA_PALETTES: { [key: string]: [Color, Color, Color][] } = {
     [{ r: 100, g: 200, b: 255 }, { r: 255, g: 150, b: 50 }, { r: 200, g: 50, b: 50 }],
     // Helix Nebula (Blue/Green center, Red outer)
     [{ r: 100, g: 255, b: 200 }, { r: 255, g: 100, b: 100 }, { r: 200, g: 50, b: 80 }],
+  ],
+  'egg': [
+    // Egg Nebula (Purple/Blue core, Yellow-Green shell with red jets)
+    [{ r: 150, g: 100, b: 200 }, { r: 200, g: 255, b: 150 }, { r: 255, g: 100, b: 100 }],
+    // Cool egg nebula (Blue/Teal with white center)
+    [{ r: 100, g: 200, b: 200 }, { r: 180, g: 255, b: 200 }, { r: 255, g: 255, b: 255 }],
+  ],
+  'eye': [
+    // Cat's Eye Nebula (Green-Yellow outer, Purple-Blue inner, bright core)
+    [{ r: 150, g: 255, b: 100 }, { r: 100, g: 100, b: 200 }, { r: 255, g: 255, b: 255 }],
+    // NGC 6826 (Green ring, Orange accents, bright center)
+    [{ r: 100, g: 200, b: 100 }, { r: 255, g: 150, b: 50 }, { r: 200, g: 255, b: 255 }],
   ],
   'emission': [
     // Classic HII Pink/Red
