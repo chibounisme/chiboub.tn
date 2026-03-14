@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { motion, Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
 import StarField from './components/starfield';
 import { GitHubIcon, LinkedInIcon, EmailIcon } from './components/Icons';
 import './App.css';

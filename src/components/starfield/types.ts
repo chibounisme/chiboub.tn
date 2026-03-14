@@ -6,19 +6,23 @@ export interface Color {
   b: number;
 }
 
+// ============================================================================
+// Star Types
+// ============================================================================
+
 export interface Star {
-  x: number;
-  y: number;
   size: number;
   brightness: number;
   twinkleSpeed: number;
   twinkleOffset: number;
   color: Color;
-  parallaxFactor: number;
-  // Pre-calculated values for performance
   angle: number;
   initialPhase: number;
 }
+
+// ============================================================================
+// Galaxy Types
+// ============================================================================
 
 export type GalaxyType = 'spiral' | 'barred-spiral' | 'elliptical' | 'irregular' | 'lenticular';
 
@@ -43,7 +47,6 @@ export interface Galaxy {
   brightness: number;
   type: GalaxyType;
   inclination: number;
-  tilt: number;
   arms: number;
   armTightness: number;
   armSpread: number;
@@ -51,11 +54,13 @@ export interface Galaxy {
   coreColor: Color;
   armColor: Color;
   outerColor: Color;
-  parallaxFactor: number;
   armPoints: ArmPoint[][];
-  ellipticity: number;
   starPoints: StarPoint[];
 }
+
+// ============================================================================
+// Nebula Types
+// ============================================================================
 
 export interface NebulaLayer {
   offsetX: number;
@@ -89,12 +94,6 @@ export interface DustParticle {
   size: number;
 }
 
-export interface DustLane {
-  angle: number;
-  width: number;
-  offset: number;
-}
-
 export interface EmbeddedStar {
   angle: number;
   dist: number;
@@ -113,46 +112,97 @@ export interface Nebula {
   color1: Color;
   color2: Color;
   color3: Color;
-  shape: number;
   rotation: number;
   type: NebulaType;
-  noiseSeeds: number[];
-  dustLanes: DustLane[];
   layers: NebulaLayer[];
   blobs: NebulaBlob[][];
   filaments: NebulaFilament[];
   dustParticles: DustParticle[];
   embeddedStars: EmbeddedStar[];
-  parallaxFactor: number;
 }
 
-export interface ClusterStar {
-  x: number; // Relative to cluster center
-  y: number; // Relative to cluster center
-  size: number;
-  color: Color;
-  brightness: number;
-  twinkleSpeed: number;
-  twinkleOffset: number;
+// ============================================================================
+// Render System Interface
+// ============================================================================
+
+export interface RenderSystem {
+  init(gl: WebGLRenderingContext, width: number, height: number, config: SpaceConfig): void;
+  resize(gl: WebGLRenderingContext, width: number, height: number): void;
+  update(time: number, deltaTime: number, driftOffset: number): void;
+  render(gl: WebGLRenderingContext): void;
+  dispose(gl: WebGLRenderingContext): void;
 }
 
-export interface StarCluster {
-  x: number;
-  y: number;
-  size: number; // Overall radius
-  brightness: number;
-  stars: ClusterStar[];
-  color: Color; // Dominant color
-  parallaxFactor: number;
-  rotation: number;
-  type: 'open' | 'globular';
+// ============================================================================
+// Configuration
+// ============================================================================
+
+export interface SpaceConfig {
+  stars: {
+    densityMultiplier: number;
+    densityFactor: number;
+  };
+  galaxies: {
+    countMultiplier: number;
+    min: number;
+    max: number;
+  };
+  nebulae: {
+    countMultiplier: number;
+    min: number;
+    max: number;
+  };
+  shootingStars: {
+    maxActive: number;
+    minDelay: number;
+    maxDelay: number;
+  };
+  dustClouds: {
+    count: number;
+    minAlpha: number;
+    maxAlpha: number;
+  };
+  planets: {
+    maxVisible: number;
+    spawnChance: number;
+  };
+  motion: {
+    driftSpeed: number;
+    warpExponent: number;
+  };
 }
 
-// Performance configuration for density control
-export interface PerformanceConfig {
-  starDensityMultiplier: number;
-  galaxyCountMultiplier: number;
-  nebulaCountMultiplier: number;
-  clusterCountMultiplier?: number;
-  maxShootingStars: number;
-}
+export const DEFAULT_CONFIG: SpaceConfig = {
+  stars: {
+    densityMultiplier: 1.2,
+    densityFactor: 200,
+  },
+  galaxies: {
+    countMultiplier: 2.5,
+    min: 40,
+    max: 80,
+  },
+  nebulae: {
+    countMultiplier: 3.0,
+    min: 3,
+    max: 6,
+  },
+  shootingStars: {
+    maxActive: 2,
+    minDelay: 4,
+    maxDelay: 12,
+  },
+  dustClouds: {
+    count: 10,
+    minAlpha: 0.02,
+    maxAlpha: 0.06,
+  },
+  planets: {
+    maxVisible: 2,
+    spawnChance: 0.3,
+  },
+  motion: {
+    driftSpeed: 0.05,
+    warpExponent: 1.5,
+  },
+};
