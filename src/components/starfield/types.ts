@@ -165,23 +165,23 @@ export interface SpaceConfig {
 
 export const DEFAULT_CONFIG: SpaceConfig = {
   stars: {
-    densityMultiplier: 1.2,
-    densityFactor: 200,
+    densityMultiplier: 2.0,
+    densityFactor: 180,
   },
   galaxies: {
-    countMultiplier: 2.5,
-    min: 40,
-    max: 80,
+    countMultiplier: 3.5,
+    min: 60,
+    max: 120,
   },
   nebulae: {
-    countMultiplier: 3.0,
-    min: 3,
-    max: 6,
+    countMultiplier: 4.0,
+    min: 5,
+    max: 10,
   },
   dustClouds: {
-    count: 10,
+    count: 18,
     minAlpha: 0.02,
-    maxAlpha: 0.06,
+    maxAlpha: 0.07,
   },
   motion: {
     driftSpeed: 0.05,
