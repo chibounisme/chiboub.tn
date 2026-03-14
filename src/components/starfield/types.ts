@@ -152,19 +152,10 @@ export interface SpaceConfig {
     min: number;
     max: number;
   };
-  shootingStars: {
-    maxActive: number;
-    minDelay: number;
-    maxDelay: number;
-  };
   dustClouds: {
     count: number;
     minAlpha: number;
     maxAlpha: number;
-  };
-  planets: {
-    maxVisible: number;
-    spawnChance: number;
   };
   motion: {
     driftSpeed: number;
@@ -187,19 +178,10 @@ export const DEFAULT_CONFIG: SpaceConfig = {
     min: 3,
     max: 6,
   },
-  shootingStars: {
-    maxActive: 2,
-    minDelay: 4,
-    maxDelay: 12,
-  },
   dustClouds: {
     count: 10,
     minAlpha: 0.02,
     maxAlpha: 0.06,
-  },
-  planets: {
-    maxVisible: 2,
-    spawnChance: 0.3,
   },
   motion: {
     driftSpeed: 0.05,
