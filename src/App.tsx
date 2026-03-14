@@ -20,9 +20,6 @@ function App() {
         <h1 className="name">
           Mohamed Chiboub
         </h1>
-        <h2 className="title">
-          Software Engineer
-        </h2>
         <nav className="social-links">
           <motion.a 
             href="https://github.com/chibounisme" 
