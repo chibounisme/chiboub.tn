@@ -205,29 +205,12 @@ export const GALAXY_TYPES = [
 ] as const;
 
 // Star density factor (pixels per star) - lower = more stars
-// Decreased to increase density significantly
 export const STAR_DENSITY_FACTOR = 200;
 
-// Shooting star timing
-export const SHOOTING_STAR_MIN_DELAY = 5;
-export const SHOOTING_STAR_MAX_DELAY = 15;
-
-// Galaxy count range (reduced for better performance)
+// Galaxy count range
 export const MIN_GALAXIES = 40;
 export const MAX_GALAXIES = 80;
 
-// Nebula count range (reduced for better performance)
+// Nebula count range
 export const MIN_NEBULAS = 3;
 export const MAX_NEBULAS = 6;
-
-// Nebula size range
-export const MIN_NEBULA_SIZE = 100;
-export const MAX_NEBULA_SIZE = 300;
-
-// Star Cluster count range (reduced for better performance)
-export const MIN_CLUSTERS = 2;
-export const MAX_CLUSTERS = 8;
-
-// Star Cluster size range
-export const MIN_CLUSTER_SIZE = 30;
-export const MAX_CLUSTER_SIZE = 100;

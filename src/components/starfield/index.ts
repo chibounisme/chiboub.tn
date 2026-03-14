@@ -2,7 +2,7 @@
 export { default as StarField } from './StarField';
 export { default } from './StarField';
 
-// Type exports (only types actually used)
+// Type exports
 export type {
   Color,
   Star,
@@ -10,4 +10,6 @@ export type {
   GalaxyType,
   Nebula,
   NebulaType,
+  SpaceConfig,
+  RenderSystem,
 } from './types';
