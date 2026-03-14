@@ -5,9 +5,7 @@ import type { SpaceConfig } from './types';
 import { StarSystem } from './systems/StarSystem';
 import { GalaxySystem } from './systems/GalaxySystem';
 import { NebulaSystem } from './systems/NebulaSystem';
-import { ShootingStarSystem } from './systems/ShootingStarSystem';
 import { DustCloudSystem } from './systems/DustCloudSystem';
-import { PlanetSystem } from './systems/PlanetSystem';
 import { BloomPass } from './systems/BloomPass';
 import { QualityManager } from './core/QualityManager';
 import './StarField.css';
@@ -55,18 +53,16 @@ const StarField: FC<StarFieldProps> = ({ config: configOverrides }) => {
     const config: SpaceConfig = { ...DEFAULT_CONFIG, ...configOverrides };
 
     // ========================================================================
-    // SYSTEMS — render order: dust → nebulae → galaxies → stars → planets → shooting stars
+    // SYSTEMS — render order: dust → nebulae → galaxies → stars
     // ========================================================================
     const dustSystem = new DustCloudSystem();
     const nebulaSystem = new NebulaSystem();
     const galaxySystem = new GalaxySystem();
     const starSystem = new StarSystem();
-    const planetSystem = new PlanetSystem();
-    const shootingStarSystem = new ShootingStarSystem();
     const bloomPass = new BloomPass();
     const qualityManager = new QualityManager();
 
-    const allSystems = [dustSystem, nebulaSystem, galaxySystem, starSystem, planetSystem, shootingStarSystem];
+    const allSystems = [dustSystem, nebulaSystem, galaxySystem, starSystem];
 
     // ========================================================================
     // STATE
