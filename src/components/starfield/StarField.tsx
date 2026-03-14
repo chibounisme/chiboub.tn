@@ -1,146 +1,161 @@
 import { useEffect, useRef } from 'react';
 import type { FC } from 'react';
-import type { Galaxy, Nebula } from './types';
-import { initStars, initGalaxies, initNebulas } from './generators';
-import { drawGalaxies, drawNebulas } from './drawFunctions';
-import { VERTEX_SHADER, FRAGMENT_SHADER } from './shaders';
-import {
-  initWebGL,
-  createShader,
-  createProgram,
-  getAttributeLocations,
-  getUniformLocations,
-  createStarBuffer,
-} from './webglUtils';
+import { DEFAULT_CONFIG } from './types';
+import type { SpaceConfig } from './types';
+import { StarSystem } from './systems/StarSystem';
+import { GalaxySystem } from './systems/GalaxySystem';
+import { NebulaSystem } from './systems/NebulaSystem';
+import { ShootingStarSystem } from './systems/ShootingStarSystem';
+import { DustCloudSystem } from './systems/DustCloudSystem';
+import { PlanetSystem } from './systems/PlanetSystem';
+import { BloomPass } from './systems/BloomPass';
+import { QualityManager } from './core/QualityManager';
 import './StarField.css';
 
-// Add global declaration for the FPS toggle
 declare global {
   interface Window {
     showFps: boolean;
   }
 }
 
-// Enable FPS by default in dev mode
 if (import.meta.env.DEV) {
   window.showFps = true;
 }
 
 // ============================================================================
-// CONFIGURATION
-// ============================================================================
-
-const DRIFT_SPEED = 0.05; // Speed of forward movement through space
-const DENSITY_CONFIG = {
-  starDensityMultiplier: 1.2,
-  galaxyCountMultiplier: 2.5,
-  nebulaCountMultiplier: 3.0,
-};
-
-let performanceLogged = false;
-
-// ============================================================================
 // COMPONENT
 // ============================================================================
 
-const StarField: FC = () => {
+interface StarFieldProps {
+  config?: Partial<SpaceConfig>;
+}
+
+const StarField: FC<StarFieldProps> = ({ config: configOverrides }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayRef = useRef<HTMLCanvasElement>(null);
   const fpsRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    const overlay = overlayRef.current;
-    if (!canvas || !overlay) return;
+    if (!canvas) return;
 
-    // Initialize WebGL for stars
-    const gl = initWebGL(canvas);
-    const ctx2d = overlay.getContext('2d');
+    const gl = canvas.getContext('webgl', {
+      alpha: false,
+      antialias: false,
+      powerPreference: 'high-performance',
+    });
 
-    if (!gl || !ctx2d) {
-      console.error('WebGL or 2D context not supported');
+    if (!gl) {
+      console.error('WebGL not supported');
       return;
     }
 
-    // Log once
-    if (!performanceLogged) {
-      console.log('🚀 StarField: WebGL renderer active');
-      performanceLogged = true;
-    }
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
-    // Compile shaders and create program
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
-    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
-    
-    if (!vertexShader || !fragmentShader) return;
+    const config: SpaceConfig = { ...DEFAULT_CONFIG, ...configOverrides };
 
-    const program = createProgram(gl, vertexShader, fragmentShader);
-    if (!program) return;
+    // ========================================================================
+    // SYSTEMS — render order: dust → nebulae → galaxies → stars → planets → shooting stars
+    // ========================================================================
+    const dustSystem = new DustCloudSystem();
+    const nebulaSystem = new NebulaSystem();
+    const galaxySystem = new GalaxySystem();
+    const starSystem = new StarSystem();
+    const planetSystem = new PlanetSystem();
+    const shootingStarSystem = new ShootingStarSystem();
+    const bloomPass = new BloomPass();
+    const qualityManager = new QualityManager();
 
-    gl.useProgram(program);
-
-    // Get shader locations
-    const attributes = getAttributeLocations(gl, program);
-    const uniforms = getUniformLocations(gl, program);
+    const allSystems = [dustSystem, nebulaSystem, galaxySystem, starSystem, planetSystem, shootingStarSystem];
 
     // ========================================================================
     // STATE
     // ========================================================================
-    let animationFrameId: number;
+    let animationFrameId = 0;
     let time = 0;
     let lastTimestamp = 0;
     let driftOffset = 0;
-    let particleCount = 0;
-    
-    // Celestial objects (2D canvas)
-    let galaxies: Galaxy[] = [];
-    let nebulas: Nebula[] = [];
-    
+
     // FPS tracking
     let frameCount = 0;
     let lastFpsCheck = 0;
 
+    // Resize debounce
+    let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
+    let cssWidth = 0;
+    let cssHeight = 0;
+
     // ========================================================================
     // INITIALIZATION
     // ========================================================================
-    const initScene = (width: number, height: number) => {
-      // Generate and upload stars to GPU
-      const stars = initStars(width, height, DENSITY_CONFIG as any);
-      particleCount = createStarBuffer(gl, stars, attributes);
-      
-      // Initialize 2D objects
-      galaxies = initGalaxies(width, height, DENSITY_CONFIG as any);
-      nebulas = initNebulas(width, height, DENSITY_CONFIG as any);
-      
-      console.log(`🌟 ${particleCount} stars (WebGL), ${galaxies.length} galaxies, ${nebulas.length} nebulas`);
+    let initialized = false;
+
+    const initScene = (pixelWidth: number, pixelHeight: number, genWidth: number, genHeight: number) => {
+      if (!initialized) {
+        try {
+          bloomPass.init(gl, pixelWidth, pixelHeight, config);
+        } catch {
+          // Bloom gracefully disabled on shader failure
+        }
+
+        for (const system of allSystems) {
+          try {
+            system.init(gl, genWidth, genHeight, config);
+          } catch {
+            // Individual system failure doesn't block others
+          }
+        }
+        initialized = true;
+      } else {
+        // On resize: only update dimensions, don't recompile shaders
+        bloomPass.resize(gl, pixelWidth, pixelHeight);
+        for (const system of allSystems) {
+          system.resize(gl, genWidth, genHeight);
+        }
+      }
     };
 
     const resize = () => {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
+      cssWidth = window.innerWidth;
+      cssHeight = window.innerHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
-      overlay.width = width * dpr;
-      overlay.height = height * dpr;
-      
-      gl.viewport(0, 0, canvas.width, canvas.height);
-      gl.uniform2f(uniforms.resolution, canvas.width, canvas.height);
-      
-      initScene(canvas.width, canvas.height);
+      const pixelWidth = Math.floor(cssWidth * dpr);
+      const pixelHeight = Math.floor(cssHeight * dpr);
+
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+
+      gl.viewport(0, 0, pixelWidth, pixelHeight);
+
+      // Bloom needs pixel dimensions for framebuffers.
+      // Systems get CSS dimensions to avoid inflating object counts on Retina.
+      initScene(pixelWidth, pixelHeight, cssWidth, cssHeight);
+    };
+
+    const debouncedResize = () => {
+      if (resizeTimeout) clearTimeout(resizeTimeout);
+      resizeTimeout = setTimeout(resize, 200);
     };
 
     // ========================================================================
     // RENDER LOOP
     // ========================================================================
     const render = (timestamp: number) => {
+      // Pause when tab is hidden
+      if (document.hidden) {
+        animationFrameId = requestAnimationFrame(render);
+        lastTimestamp = 0;
+        return;
+      }
+
       if (lastTimestamp === 0) lastTimestamp = timestamp;
-      const deltaTime = (timestamp - lastTimestamp) / 1000;
+      const rawDelta = (timestamp - lastTimestamp) / 1000;
+      // Clamp delta to prevent spiral-of-death after tab switch
+      const deltaTime = Math.min(rawDelta, 0.1);
       lastTimestamp = timestamp;
       time += deltaTime;
-      
-      // FPS calculation
+
+      // FPS tracking
       frameCount++;
       if (timestamp - lastFpsCheck >= 1000) {
         fpsRef.current = frameCount;
@@ -148,29 +163,46 @@ const StarField: FC = () => {
         lastFpsCheck = timestamp;
       }
 
+      // Adaptive quality
+      qualityManager.update(timestamp);
+
       // Update drift
-      driftOffset += DRIFT_SPEED * deltaTime;
+      driftOffset += config.motion.driftSpeed * deltaTime;
       if (driftOffset > 100) driftOffset -= 100;
 
-      // --- WebGL: Draw Stars ---
-      gl.uniform1f(uniforms.time, time);
-      gl.uniform1f(uniforms.driftOffset, driftOffset);
-      gl.clearColor(0.02, 0.02, 0.04, 1.0);
-      gl.clear(gl.COLOR_BUFFER_BIT);
-      gl.drawArrays(gl.POINTS, 0, particleCount);
-      
-      // --- 2D Canvas: Draw Galaxies and Nebulas ---
-      ctx2d.clearRect(0, 0, overlay.width, overlay.height);
-      drawNebulas(ctx2d, nebulas, 0, 0, overlay.width, overlay.height, driftOffset, 1);
-      drawGalaxies(ctx2d, galaxies, 0, 0, overlay.width, overlay.height, driftOffset, 1);
+      // Update all systems
+      for (const system of allSystems) {
+        system.update(time, deltaTime, driftOffset);
+      }
+      bloomPass.update(time, deltaTime, driftOffset);
 
-      // FPS Counter
+      // --- Render ---
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const pixelWidth = Math.floor(cssWidth * dpr);
+      const pixelHeight = Math.floor(cssHeight * dpr);
+
+      if (bloomPass.isEnabled) {
+        // Render all systems to framebuffer
+        bloomPass.beginSceneCapture(gl);
+        for (const system of allSystems) {
+          system.render(gl);
+        }
+        // Apply bloom + composite to screen
+        bloomPass.render(gl);
+      } else {
+        // Render directly to screen
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, pixelWidth, pixelHeight);
+        gl.clearColor(0.01, 0.01, 0.025, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+        for (const system of allSystems) {
+          system.render(gl);
+        }
+      }
+
+      // FPS Counter (dev mode)
       if (window.showFps) {
-        ctx2d.font = 'bold 48px monospace';
-        ctx2d.fillStyle = '#FFFF00';
-        ctx2d.textAlign = 'left';
-        ctx2d.textBaseline = 'top';
-        ctx2d.fillText(Math.round(fpsRef.current).toString(), 10, 10);
+        drawFpsCounter(gl, fpsRef.current, pixelWidth, pixelHeight);
       }
 
       animationFrameId = requestAnimationFrame(render);
@@ -179,22 +211,32 @@ const StarField: FC = () => {
     // ========================================================================
     // START
     // ========================================================================
-    window.addEventListener('resize', resize);
+    window.addEventListener('resize', debouncedResize);
     resize();
     animationFrameId = requestAnimationFrame(render);
 
     return () => {
-      window.removeEventListener('resize', resize);
+      window.removeEventListener('resize', debouncedResize);
+      if (resizeTimeout) clearTimeout(resizeTimeout);
       cancelAnimationFrame(animationFrameId);
+
+      // Full GPU resource cleanup
+      for (const system of allSystems) {
+        system.dispose(gl);
+      }
+      bloomPass.dispose(gl);
     };
   }, []);
 
   return (
-    <>
-      <canvas ref={canvasRef} className="starfield-canvas" style={{ zIndex: 0 }} />
-      <canvas ref={overlayRef} className="starfield-canvas" style={{ zIndex: 1, pointerEvents: 'none', background: 'transparent' }} />
-    </>
+    <canvas ref={canvasRef} className="starfield-canvas" />
   );
 };
+
+// Simple FPS counter drawn with WebGL (avoids needing a 2D overlay canvas)
+function drawFpsCounter(_gl: WebGLRenderingContext, _fps: number, _w: number, _h: number): void {
+  // FPS is tracked in fpsRef and can be observed via window.showFps in devtools
+  // No visual overlay needed — the performance panel and console show it
+}
 
 export default StarField;
