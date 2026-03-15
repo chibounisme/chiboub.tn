@@ -21,9 +21,7 @@ attribute float a_twinkleOffset;
 attribute float a_isBright;
 
 uniform float u_time;
-uniform float u_driftOffset;
 uniform vec2 u_resolution;
-uniform float u_warpExponent;
 
 varying vec3 v_color;
 varying float v_alpha;
@@ -32,12 +30,8 @@ varying float v_isBright;
 void main() {
   float maxDist = length(u_resolution * 0.5);
 
-  float speed = 0.2;
-  float depthPhase = mod(a_initialPhase + u_driftOffset * speed, 1.0);
-
-  // Exponential warp — slow near center, fast at edges
-  float warpedPhase = pow(depthPhase, u_warpExponent);
-  float travelDist = maxDist * warpedPhase;
+  // Static radial position based on initial phase
+  float travelDist = maxDist * a_initialPhase;
 
   float x = cos(a_angle) * travelDist;
   float y = sin(a_angle) * travelDist;
@@ -49,24 +43,10 @@ void main() {
   gl_Position.y *= -1.0;
 
   // Size scaling with depth
-  float depthSize = 0.1 + depthPhase * 1.4;
+  float depthSize = 0.1 + a_initialPhase * 1.4;
   gl_PointSize = a_size * depthSize * (u_resolution.y / 1000.0) * 2.0;
 
-  // Alpha fading — quadratic ease-in, sharp fade-out
-  float depthAlpha = 1.0;
-  if (depthPhase < 0.4) {
-    float t = depthPhase / 0.4;
-    depthAlpha = t * t;
-  } else if (depthPhase > 0.95) {
-    depthAlpha = (1.0 - depthPhase) / 0.05;
-  }
-
-  // Noise-inspired twinkle: combine two sine waves at different frequencies
-  float twinkle1 = sin(u_time * a_twinkleSpeed + a_twinkleOffset) * 0.3;
-  float twinkle2 = sin(u_time * a_twinkleSpeed * 2.7 + a_twinkleOffset * 1.3) * 0.15;
-  float twinkle = 0.55 + twinkle1 + twinkle2;
-
-  v_alpha = a_brightness * twinkle * depthAlpha;
+  v_alpha = a_brightness;
   v_color = a_color;
   v_isBright = a_isBright;
 }
@@ -171,23 +151,37 @@ export class StarSystem implements RenderSystem {
   private program: WebGLProgram | null = null;
   private buffer: WebGLBuffer | null = null;
   private particleCount = 0;
+  private attributes: {
+    angle: number;
+    phase: number;
+    size: number;
+    color: number;
+    brightness: number;
+    twinkleSpeed: number;
+    twinkleOffset: number;
+    isBright: number;
+  } = {
+    angle: -1,
+    phase: -1,
+    size: -1,
+    color: -1,
+    brightness: -1,
+    twinkleSpeed: -1,
+    twinkleOffset: -1,
+    isBright: -1,
+  };
   private uniforms: {
     time: WebGLUniformLocation | null;
-    driftOffset: WebGLUniformLocation | null;
     resolution: WebGLUniformLocation | null;
-    warpExponent: WebGLUniformLocation | null;
-  } = { time: null, driftOffset: null, resolution: null, warpExponent: null };
+  } = { time: null, resolution: null };
   private time = 0;
-  private driftOffset = 0;
   private width = 0;
   private height = 0;
-  private warpExponent = 1.5;
   private config: SpaceConfig | null = null;
 
   init(gl: WebGLRenderingContext, width: number, height: number, config: SpaceConfig): void {
     this.width = width;
     this.height = height;
-    this.warpExponent = config.motion.warpExponent;
     this.config = config;
 
     // Compile program
@@ -207,9 +201,18 @@ export class StarSystem implements RenderSystem {
 
     this.uniforms = {
       time: gl.getUniformLocation(this.program, 'u_time'),
-      driftOffset: gl.getUniformLocation(this.program, 'u_driftOffset'),
       resolution: gl.getUniformLocation(this.program, 'u_resolution'),
-      warpExponent: gl.getUniformLocation(this.program, 'u_warpExponent'),
+    };
+
+    this.attributes = {
+      angle: gl.getAttribLocation(this.program, 'a_angle'),
+      phase: gl.getAttribLocation(this.program, 'a_initialPhase'),
+      size: gl.getAttribLocation(this.program, 'a_size'),
+      color: gl.getAttribLocation(this.program, 'a_color'),
+      brightness: gl.getAttribLocation(this.program, 'a_brightness'),
+      twinkleSpeed: gl.getAttribLocation(this.program, 'a_twinkleSpeed'),
+      twinkleOffset: gl.getAttribLocation(this.program, 'a_twinkleOffset'),
+      isBright: gl.getAttribLocation(this.program, 'a_isBright'),
     };
 
     this.buildStarBuffer(gl, width, height, config);
@@ -248,9 +251,8 @@ export class StarSystem implements RenderSystem {
     if (this.config) this.buildStarBuffer(gl, width, height, this.config);
   }
 
-  update(time: number, _deltaTime: number, driftOffset: number): void {
+  update(time: number, _deltaTime: number): void {
     this.time = time;
-    this.driftOffset = driftOffset;
   }
 
   render(gl: WebGLRenderingContext): void {
@@ -260,38 +262,41 @@ export class StarSystem implements RenderSystem {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 
     const stride = 10 * 4;
-    const locs = {
-      angle: gl.getAttribLocation(this.program, 'a_angle'),
-      phase: gl.getAttribLocation(this.program, 'a_initialPhase'),
-      size: gl.getAttribLocation(this.program, 'a_size'),
-      color: gl.getAttribLocation(this.program, 'a_color'),
-      brightness: gl.getAttribLocation(this.program, 'a_brightness'),
-      twinkleSpeed: gl.getAttribLocation(this.program, 'a_twinkleSpeed'),
-      twinkleOffset: gl.getAttribLocation(this.program, 'a_twinkleOffset'),
-      isBright: gl.getAttribLocation(this.program, 'a_isBright'),
-    };
-
-    gl.vertexAttribPointer(locs.angle, 1, gl.FLOAT, false, stride, 0);
-    gl.enableVertexAttribArray(locs.angle);
-    gl.vertexAttribPointer(locs.phase, 1, gl.FLOAT, false, stride, 4);
-    gl.enableVertexAttribArray(locs.phase);
-    gl.vertexAttribPointer(locs.size, 1, gl.FLOAT, false, stride, 8);
-    gl.enableVertexAttribArray(locs.size);
-    gl.vertexAttribPointer(locs.color, 3, gl.FLOAT, false, stride, 12);
-    gl.enableVertexAttribArray(locs.color);
-    gl.vertexAttribPointer(locs.brightness, 1, gl.FLOAT, false, stride, 24);
-    gl.enableVertexAttribArray(locs.brightness);
-    gl.vertexAttribPointer(locs.twinkleSpeed, 1, gl.FLOAT, false, stride, 28);
-    gl.enableVertexAttribArray(locs.twinkleSpeed);
-    gl.vertexAttribPointer(locs.twinkleOffset, 1, gl.FLOAT, false, stride, 32);
-    gl.enableVertexAttribArray(locs.twinkleOffset);
-    gl.vertexAttribPointer(locs.isBright, 1, gl.FLOAT, false, stride, 36);
-    gl.enableVertexAttribArray(locs.isBright);
+    if (this.attributes.angle >= 0) {
+      gl.vertexAttribPointer(this.attributes.angle, 1, gl.FLOAT, false, stride, 0);
+      gl.enableVertexAttribArray(this.attributes.angle);
+    }
+    if (this.attributes.phase >= 0) {
+      gl.vertexAttribPointer(this.attributes.phase, 1, gl.FLOAT, false, stride, 4);
+      gl.enableVertexAttribArray(this.attributes.phase);
+    }
+    if (this.attributes.size >= 0) {
+      gl.vertexAttribPointer(this.attributes.size, 1, gl.FLOAT, false, stride, 8);
+      gl.enableVertexAttribArray(this.attributes.size);
+    }
+    if (this.attributes.color >= 0) {
+      gl.vertexAttribPointer(this.attributes.color, 3, gl.FLOAT, false, stride, 12);
+      gl.enableVertexAttribArray(this.attributes.color);
+    }
+    if (this.attributes.brightness >= 0) {
+      gl.vertexAttribPointer(this.attributes.brightness, 1, gl.FLOAT, false, stride, 24);
+      gl.enableVertexAttribArray(this.attributes.brightness);
+    }
+    if (this.attributes.twinkleSpeed >= 0) {
+      gl.vertexAttribPointer(this.attributes.twinkleSpeed, 1, gl.FLOAT, false, stride, 28);
+      gl.enableVertexAttribArray(this.attributes.twinkleSpeed);
+    }
+    if (this.attributes.twinkleOffset >= 0) {
+      gl.vertexAttribPointer(this.attributes.twinkleOffset, 1, gl.FLOAT, false, stride, 32);
+      gl.enableVertexAttribArray(this.attributes.twinkleOffset);
+    }
+    if (this.attributes.isBright >= 0) {
+      gl.vertexAttribPointer(this.attributes.isBright, 1, gl.FLOAT, false, stride, 36);
+      gl.enableVertexAttribArray(this.attributes.isBright);
+    }
 
     gl.uniform1f(this.uniforms.time, this.time);
-    gl.uniform1f(this.uniforms.driftOffset, this.driftOffset);
     gl.uniform2f(this.uniforms.resolution, this.width, this.height);
-    gl.uniform1f(this.uniforms.warpExponent, this.warpExponent);
 
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -303,6 +308,16 @@ export class StarSystem implements RenderSystem {
     if (this.program) gl.deleteProgram(this.program);
     this.buffer = null;
     this.program = null;
+    this.attributes = {
+      angle: -1,
+      phase: -1,
+      size: -1,
+      color: -1,
+      brightness: -1,
+      twinkleSpeed: -1,
+      twinkleOffset: -1,
+      isBright: -1,
+    };
   }
 }
 
