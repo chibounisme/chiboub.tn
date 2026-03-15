@@ -7,8 +7,6 @@ import { GalaxySystem } from './systems/GalaxySystem';
 import { NebulaSystem } from './systems/NebulaSystem';
 import { DustCloudSystem } from './systems/DustCloudSystem';
 import { BloomPass } from './systems/BloomPass';
-import { QualityManager } from './core/QualityManager';
-import './StarField.css';
 
 declare global {
   interface Window {
@@ -28,204 +26,222 @@ interface StarFieldProps {
   config?: Partial<SpaceConfig>;
 }
 
+function mergeConfig(configOverrides?: Partial<SpaceConfig>): SpaceConfig {
+  return {
+    stars: {
+      ...DEFAULT_CONFIG.stars,
+      ...configOverrides?.stars,
+    },
+    galaxies: {
+      ...DEFAULT_CONFIG.galaxies,
+      ...configOverrides?.galaxies,
+    },
+    nebulae: {
+      ...DEFAULT_CONFIG.nebulae,
+      ...configOverrides?.nebulae,
+    },
+    dustClouds: {
+      ...DEFAULT_CONFIG.dustClouds,
+      ...configOverrides?.dustClouds,
+    },
+    bloom: {
+      ...DEFAULT_CONFIG.bloom,
+      ...configOverrides?.bloom,
+    },
+  };
+}
+
+function isLowEndDevice(config: SpaceConfig): boolean {
+  if (!config.bloom.disableOnLowEnd) {
+    return false;
+  }
+
+  const nav = navigator as Navigator & { deviceMemory?: number };
+  const memory = nav.deviceMemory;
+  const cores = nav.hardwareConcurrency;
+
+  return Boolean(
+    (typeof memory === 'number' && memory <= config.bloom.lowEndMaxMemoryGb) ||
+    (typeof cores === 'number' && cores <= config.bloom.lowEndMaxCores)
+  );
+}
+
 const StarField: FC<StarFieldProps> = ({ config: configOverrides }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fpsRef = useRef(0);
+  const renderVersionRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const gl = canvas.getContext('webgl', {
+    const displayCtx = canvas.getContext('2d', {
       alpha: false,
-      antialias: false,
-      powerPreference: 'high-performance',
+      desynchronized: true,
     });
 
-    if (!gl) {
-      console.error('WebGL not supported');
+    if (!displayCtx) {
+      console.error('2D canvas not supported');
       return;
     }
 
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    displayCtx.imageSmoothingEnabled = false;
 
-    const config: SpaceConfig = { ...DEFAULT_CONFIG, ...configOverrides };
-
-    // ========================================================================
-    // SYSTEMS — render order: dust → nebulae → galaxies → stars
-    // ========================================================================
-    const dustSystem = new DustCloudSystem();
-    const nebulaSystem = new NebulaSystem();
-    const galaxySystem = new GalaxySystem();
-    const starSystem = new StarSystem();
-    const bloomPass = new BloomPass();
-    const qualityManager = new QualityManager();
-
-    const allSystems = [dustSystem, nebulaSystem, galaxySystem, starSystem];
-
-    // ========================================================================
-    // STATE
-    // ========================================================================
-    let animationFrameId = 0;
-    let time = 0;
-    let lastTimestamp = 0;
-    let driftOffset = 0;
-
-    // FPS tracking
-    let frameCount = 0;
-    let lastFpsCheck = 0;
+    const config = mergeConfig(configOverrides);
+    const bloomEnabled = config.bloom.enabled && !isLowEndDevice(config);
 
     // Resize debounce
     let resizeTimeout: ReturnType<typeof setTimeout> | null = null;
-    let cssWidth = 0;
-    let cssHeight = 0;
+    let lastPixelWidth = 0;
+    let lastPixelHeight = 0;
 
-    // ========================================================================
-    // INITIALIZATION
-    // ========================================================================
-    let initialized = false;
+    const PIXEL_SCALE = 6;
 
-    const initScene = (pixelWidth: number, pixelHeight: number, genWidth: number, genHeight: number) => {
-      if (!initialized) {
-        try {
-          bloomPass.init(gl, pixelWidth, pixelHeight, config);
-        } catch {
-          // Bloom gracefully disabled on shader failure
+    const drawFallback = (width: number, height: number) => {
+      canvas.width = width;
+      canvas.height = height;
+      displayCtx.fillStyle = '#03040a';
+      displayCtx.fillRect(0, 0, width, height);
+    };
+
+    const renderScene = async (force = false) => {
+      const renderVersion = ++renderVersionRef.current;
+
+      if (document.hidden) {
+        return;
+      }
+
+      const cssWidth = window.innerWidth;
+      const cssHeight = window.innerHeight;
+      const pixelWidth = Math.max(1, Math.floor(cssWidth / PIXEL_SCALE));
+      const pixelHeight = Math.max(1, Math.floor(cssHeight / PIXEL_SCALE));
+
+      if (!force && pixelWidth === lastPixelWidth && pixelHeight === lastPixelHeight) {
+        return;
+      }
+
+      lastPixelWidth = pixelWidth;
+      lastPixelHeight = pixelHeight;
+      canvas.width = pixelWidth;
+      canvas.height = pixelHeight;
+
+      const renderCanvas = document.createElement('canvas');
+      renderCanvas.width = pixelWidth;
+      renderCanvas.height = pixelHeight;
+
+      const gl = renderCanvas.getContext('webgl', {
+        alpha: false,
+        antialias: false,
+        preserveDrawingBuffer: true,
+        powerPreference: 'high-performance',
+      });
+
+      if (!gl) {
+        drawFallback(pixelWidth, pixelHeight);
+        return;
+      }
+
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+      gl.viewport(0, 0, pixelWidth, pixelHeight);
+
+      const dustSystem = new DustCloudSystem();
+      const nebulaSystem = new NebulaSystem();
+      const galaxySystem = new GalaxySystem();
+      const starSystem = new StarSystem();
+      const bloomPass = new BloomPass();
+      const allSystems = [dustSystem, nebulaSystem, galaxySystem, starSystem];
+
+      try {
+        if (bloomEnabled) {
+          try {
+            bloomPass.init(gl, pixelWidth, pixelHeight, config);
+          } catch {
+            // Bloom gracefully disables itself on initialization failure.
+          }
         }
 
         for (const system of allSystems) {
           try {
-            system.init(gl, genWidth, genHeight, config);
+            system.init(gl, pixelWidth, pixelHeight, config);
+            system.update(0, 0);
           } catch {
-            // Individual system failure doesn't block others
+            // Individual system failure should not block the static frame.
           }
         }
-        initialized = true;
-      } else {
-        // On resize: only update dimensions, don't recompile shaders
-        bloomPass.resize(gl, pixelWidth, pixelHeight);
-        for (const system of allSystems) {
-          system.resize(gl, genWidth, genHeight);
+
+        if (bloomPass.isEnabled) {
+          bloomPass.beginSceneCapture(gl);
+          for (const system of allSystems) {
+            system.render(gl);
+          }
+          bloomPass.render(gl);
+        } else {
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          gl.viewport(0, 0, pixelWidth, pixelHeight);
+          gl.clearColor(0.01, 0.01, 0.025, 1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          for (const system of allSystems) {
+            system.render(gl);
+          }
         }
+
+        if (window.showFps) {
+          drawFpsCounter(gl, 0, pixelWidth, pixelHeight);
+        }
+
+        if (typeof createImageBitmap === 'function') {
+          const bitmap = await createImageBitmap(renderCanvas);
+          if (renderVersionRef.current === renderVersion) {
+            displayCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+            displayCtx.drawImage(bitmap, 0, 0, pixelWidth, pixelHeight);
+          }
+          bitmap.close();
+        } else if (renderVersionRef.current === renderVersion) {
+          displayCtx.clearRect(0, 0, pixelWidth, pixelHeight);
+          displayCtx.drawImage(renderCanvas, 0, 0, pixelWidth, pixelHeight);
+        }
+      } finally {
+        for (const system of allSystems) {
+          system.dispose(gl);
+        }
+        bloomPass.dispose(gl);
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
       }
-    };
-
-    const resize = () => {
-      cssWidth = window.innerWidth;
-      cssHeight = window.innerHeight;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const pixelWidth = Math.floor(cssWidth * dpr);
-      const pixelHeight = Math.floor(cssHeight * dpr);
-
-      canvas.width = pixelWidth;
-      canvas.height = pixelHeight;
-
-      gl.viewport(0, 0, pixelWidth, pixelHeight);
-
-      // Bloom needs pixel dimensions for framebuffers.
-      // Systems get CSS dimensions to avoid inflating object counts on Retina.
-      initScene(pixelWidth, pixelHeight, cssWidth, cssHeight);
     };
 
     const debouncedResize = () => {
       if (resizeTimeout) clearTimeout(resizeTimeout);
-      resizeTimeout = setTimeout(resize, 200);
+      resizeTimeout = setTimeout(() => {
+        void renderScene();
+      }, 200);
     };
 
-    // ========================================================================
-    // RENDER LOOP
-    // ========================================================================
-    const render = (timestamp: number) => {
-      // Pause when tab is hidden
-      if (document.hidden) {
-        animationFrameId = requestAnimationFrame(render);
-        lastTimestamp = 0;
-        return;
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        void renderScene(true);
       }
-
-      if (lastTimestamp === 0) lastTimestamp = timestamp;
-      const rawDelta = (timestamp - lastTimestamp) / 1000;
-      // Clamp delta to prevent spiral-of-death after tab switch
-      const deltaTime = Math.min(rawDelta, 0.1);
-      lastTimestamp = timestamp;
-      time += deltaTime;
-
-      // FPS tracking
-      frameCount++;
-      if (timestamp - lastFpsCheck >= 1000) {
-        fpsRef.current = frameCount;
-        frameCount = 0;
-        lastFpsCheck = timestamp;
-      }
-
-      // Adaptive quality
-      qualityManager.update(timestamp);
-
-      // Update drift
-      driftOffset += config.motion.driftSpeed * deltaTime;
-      if (driftOffset > 100) driftOffset -= 100;
-
-      // Update all systems
-      for (const system of allSystems) {
-        system.update(time, deltaTime, driftOffset);
-      }
-      bloomPass.update(time, deltaTime, driftOffset);
-
-      // --- Render ---
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      const pixelWidth = Math.floor(cssWidth * dpr);
-      const pixelHeight = Math.floor(cssHeight * dpr);
-
-      if (bloomPass.isEnabled) {
-        // Render all systems to framebuffer
-        bloomPass.beginSceneCapture(gl);
-        for (const system of allSystems) {
-          system.render(gl);
-        }
-        // Apply bloom + composite to screen
-        bloomPass.render(gl);
-      } else {
-        // Render directly to screen
-        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-        gl.viewport(0, 0, pixelWidth, pixelHeight);
-        gl.clearColor(0.01, 0.01, 0.025, 1.0);
-        gl.clear(gl.COLOR_BUFFER_BIT);
-        for (const system of allSystems) {
-          system.render(gl);
-        }
-      }
-
-      // FPS Counter (dev mode)
-      if (window.showFps) {
-        drawFpsCounter(gl, fpsRef.current, pixelWidth, pixelHeight);
-      }
-
-      animationFrameId = requestAnimationFrame(render);
     };
 
     // ========================================================================
     // START
     // ========================================================================
     window.addEventListener('resize', debouncedResize);
-    resize();
-    animationFrameId = requestAnimationFrame(render);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    void renderScene(true);
 
     return () => {
       window.removeEventListener('resize', debouncedResize);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       if (resizeTimeout) clearTimeout(resizeTimeout);
-      cancelAnimationFrame(animationFrameId);
-
-      // Full GPU resource cleanup
-      for (const system of allSystems) {
-        system.dispose(gl);
-      }
-      bloomPass.dispose(gl);
+      renderVersionRef.current += 1;
     };
-  }, []);
+  }, [configOverrides]);
 
   return (
-    <canvas ref={canvasRef} className="starfield-canvas" />
+    <canvas
+      ref={canvasRef}
+      className="absolute inset-0 z-1 h-full w-full [image-rendering:pixelated]"
+    />
   );
 };
 
