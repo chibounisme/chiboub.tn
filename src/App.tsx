@@ -1,60 +1,52 @@
-import { motion } from 'framer-motion';
+import { Routes, Route } from 'react-router-dom';
 import StarField from './components/starfield';
-import { GitHubIcon, LinkedInIcon, EmailIcon } from './components/Icons';
-import './App.css';
+import Layout from './components/Layout';
+import Home from './pages/Home';
+import Blog from './pages/Blog';
+import BlogPost from './pages/BlogPost';
+
+const STATIC_STARFIELD_CONFIG = {
+  stars: {
+    densityMultiplier: 1.2,
+    densityFactor: 180,
+  },
+  galaxies: {
+    countMultiplier: 1.5,
+    min: 36,
+    max: 72,
+  },
+  nebulae: {
+    countMultiplier: 1.8,
+    min: 3,
+    max: 6,
+  },
+  dustClouds: {
+    count: 10,
+    minAlpha: 0.018,
+    maxAlpha: 0.05,
+  },
+  bloom: {
+    enabled: true,
+    disableOnLowEnd: true,
+    lowEndMaxCores: 4,
+    lowEndMaxMemoryGb: 4,
+  },
+} as const;
 
 function App() {
   return (
-    <div className="app">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2.0, ease: "easeOut" }}
-        style={{ position: 'absolute', inset: 0, zIndex: 0 }}
-      >
-        <StarField />
-      </motion.div>
-      
-      <div className="content-fade-wrapper">
-        <main className="content">
-        <h1 className="name">
-          Mohamed Chiboub
-        </h1>
-        <nav className="social-links">
-          <motion.a 
-            href="https://github.com/chibounisme" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="social-link"
-            aria-label="GitHub Profile"
-            whileHover={{ scale: 1.1, y: -3 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <GitHubIcon />
-          </motion.a>
-          <motion.a 
-            href="https://www.linkedin.com/in/chiboub/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="social-link"
-            aria-label="LinkedIn Profile"
-            whileHover={{ scale: 1.1, y: -3 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <LinkedInIcon />
-          </motion.a>
-          <motion.a 
-            href="mailto:mohamedchiboub97@gmail.com" 
-            className="social-link"
-            aria-label="Send Email"
-            whileHover={{ scale: 1.1, y: -3 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <EmailIcon />
-          </motion.a>
-        </nav>
-      </main>
+    <div className="relative min-h-screen overflow-x-clip bg-site-bg">
+      <div className="fixed inset-0 z-0 overflow-hidden">
+        <StarField config={STATIC_STARFIELD_CONFIG} />
       </div>
+
+      <Layout>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
+        </Routes>
+      </Layout>
     </div>
   );
 }

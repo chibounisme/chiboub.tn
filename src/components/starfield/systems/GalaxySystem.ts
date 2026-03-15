@@ -269,6 +269,7 @@ export class GalaxySystem implements RenderSystem {
   private program: WebGLProgram | null = null;
   private buffer: WebGLBuffer | null = null;
   private pointCount = 0;
+  private attributes: Array<{ location: number; size: number; offset: number }> = [];
   private uniforms: {
     driftOffset: WebGLUniformLocation | null;
     resolution: WebGLUniformLocation | null;
@@ -283,7 +284,6 @@ export class GalaxySystem implements RenderSystem {
   init(gl: WebGLRenderingContext, width: number, height: number, config: SpaceConfig): void {
     this.width = width;
     this.height = height;
-    this.warpExponent = config.motion.warpExponent;
     this.config = config;
 
     const vs = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
@@ -305,6 +305,22 @@ export class GalaxySystem implements RenderSystem {
       resolution: gl.getUniformLocation(this.program, 'u_resolution'),
       warpExponent: gl.getUniformLocation(this.program, 'u_warpExponent'),
     };
+
+    this.attributes = [
+      ['a_position', 2, 0],
+      ['a_angle', 1, 8],
+      ['a_phase', 1, 12],
+      ['a_speed', 1, 16],
+      ['a_size', 1, 20],
+      ['a_color', 3, 24],
+      ['a_alpha', 1, 36],
+      ['a_rotation', 1, 40],
+      ['a_inclination', 1, 44],
+    ].map(([name, size, offset]) => ({
+      location: gl.getAttribLocation(this.program!, name),
+      size,
+      offset,
+    }));
 
     this.buildBuffer(gl, width, height, config);
   }
@@ -344,8 +360,7 @@ export class GalaxySystem implements RenderSystem {
     if (this.config) this.buildBuffer(gl, width, height, this.config);
   }
 
-  update(_time: number, _deltaTime: number, driftOffset: number): void {
-    this.driftOffset = driftOffset;
+  update(_time: number, _deltaTime: number): void {
   }
 
   render(gl: WebGLRenderingContext): void {
@@ -355,23 +370,10 @@ export class GalaxySystem implements RenderSystem {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 
     const stride = 12 * 4;
-    const attrs: [string, number, number][] = [
-      ['a_position', 2, 0],
-      ['a_angle', 1, 8],
-      ['a_phase', 1, 12],
-      ['a_speed', 1, 16],
-      ['a_size', 1, 20],
-      ['a_color', 3, 24],
-      ['a_alpha', 1, 36],
-      ['a_rotation', 1, 40],
-      ['a_inclination', 1, 44],
-    ];
-
-    for (const [name, size, offset] of attrs) {
-      const loc = gl.getAttribLocation(this.program, name);
-      if (loc >= 0) {
-        gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride, offset);
-        gl.enableVertexAttribArray(loc);
+    for (const attr of this.attributes) {
+      if (attr.location >= 0) {
+        gl.vertexAttribPointer(attr.location, attr.size, gl.FLOAT, false, stride, attr.offset);
+        gl.enableVertexAttribArray(attr.location);
       }
     }
 
@@ -389,6 +391,7 @@ export class GalaxySystem implements RenderSystem {
     if (this.program) gl.deleteProgram(this.program);
     this.buffer = null;
     this.program = null;
+    this.attributes = [];
   }
 }
 

@@ -101,6 +101,7 @@ export class DustCloudSystem implements RenderSystem {
   private program: WebGLProgram | null = null;
   private buffer: WebGLBuffer | null = null;
   private pointCount = 0;
+  private attributes: Array<{ location: number; size: number; offset: number }> = [];
   private uniforms: {
     driftOffset: WebGLUniformLocation | null;
     resolution: WebGLUniformLocation | null;
@@ -114,7 +115,6 @@ export class DustCloudSystem implements RenderSystem {
   init(gl: WebGLRenderingContext, width: number, height: number, config: SpaceConfig): void {
     this.width = width;
     this.height = height;
-    this.warpExponent = config.motion.warpExponent;
 
     const vs = compileShader(gl, gl.VERTEX_SHADER, VERTEX_SHADER);
     const fs = compileShader(gl, gl.FRAGMENT_SHADER, FRAGMENT_SHADER);
@@ -135,6 +135,18 @@ export class DustCloudSystem implements RenderSystem {
       resolution: gl.getUniformLocation(this.program, 'u_resolution'),
       warpExponent: gl.getUniformLocation(this.program, 'u_warpExponent'),
     };
+
+    this.attributes = [
+      ['a_angle', 1, 0],
+      ['a_phase', 1, 4],
+      ['a_size', 1, 8],
+      ['a_color', 3, 12],
+      ['a_alpha', 1, 24],
+    ].map(([name, size, offset]) => ({
+      location: gl.getAttribLocation(this.program!, name),
+      size,
+      offset,
+    }));
 
     this.buildBuffer(gl, config);
   }
@@ -170,8 +182,7 @@ export class DustCloudSystem implements RenderSystem {
     this.height = height;
   }
 
-  update(_time: number, _deltaTime: number, driftOffset: number): void {
-    this.driftOffset = driftOffset;
+  update(_time: number, _deltaTime: number): void {
   }
 
   render(gl: WebGLRenderingContext): void {
@@ -181,19 +192,10 @@ export class DustCloudSystem implements RenderSystem {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 
     const stride = 7 * 4;
-    const attrs: [string, number, number][] = [
-      ['a_angle', 1, 0],
-      ['a_phase', 1, 4],
-      ['a_size', 1, 8],
-      ['a_color', 3, 12],
-      ['a_alpha', 1, 24],
-    ];
-
-    for (const [name, size, offset] of attrs) {
-      const loc = gl.getAttribLocation(this.program, name);
-      if (loc >= 0) {
-        gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride, offset);
-        gl.enableVertexAttribArray(loc);
+    for (const attr of this.attributes) {
+      if (attr.location >= 0) {
+        gl.vertexAttribPointer(attr.location, attr.size, gl.FLOAT, false, stride, attr.offset);
+        gl.enableVertexAttribArray(attr.location);
       }
     }
 
@@ -211,6 +213,7 @@ export class DustCloudSystem implements RenderSystem {
     if (this.program) gl.deleteProgram(this.program);
     this.buffer = null;
     this.program = null;
+    this.attributes = [];
   }
 }
 

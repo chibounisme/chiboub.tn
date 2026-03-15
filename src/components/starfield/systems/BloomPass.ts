@@ -119,6 +119,18 @@ export class BloomPass implements RenderSystem {
   private bloomProgram: WebGLProgram | null = null;
   private compositeProgram: WebGLProgram | null = null;
   private quadBuffer: WebGLBuffer | null = null;
+  private bloomPositionLocation = -1;
+  private compositePositionLocation = -1;
+  private bloomUniforms: {
+    texture: WebGLUniformLocation | null;
+    texelSize: WebGLUniformLocation | null;
+    bloomIntensity: WebGLUniformLocation | null;
+  } = { texture: null, texelSize: null, bloomIntensity: null };
+  private compositeUniforms: {
+    scene: WebGLUniformLocation | null;
+    bloom: WebGLUniformLocation | null;
+    vignetteStrength: WebGLUniformLocation | null;
+  } = { scene: null, bloom: null, vignetteStrength: null };
 
   // Framebuffers and textures
   private sceneFb: WebGLFramebuffer | null = null;
@@ -159,6 +171,19 @@ export class BloomPass implements RenderSystem {
         this.enabled = false;
         return;
       }
+
+      this.bloomPositionLocation = gl.getAttribLocation(this.bloomProgram, 'a_position');
+      this.compositePositionLocation = gl.getAttribLocation(this.compositeProgram, 'a_position');
+      this.bloomUniforms = {
+        texture: gl.getUniformLocation(this.bloomProgram, 'u_texture'),
+        texelSize: gl.getUniformLocation(this.bloomProgram, 'u_texelSize'),
+        bloomIntensity: gl.getUniformLocation(this.bloomProgram, 'u_bloomIntensity'),
+      };
+      this.compositeUniforms = {
+        scene: gl.getUniformLocation(this.compositeProgram, 'u_scene'),
+        bloom: gl.getUniformLocation(this.compositeProgram, 'u_bloom'),
+        vignetteStrength: gl.getUniformLocation(this.compositeProgram, 'u_vignetteStrength'),
+      };
 
       this.createFramebuffers(gl, width, height);
     } catch {
@@ -220,7 +245,7 @@ export class BloomPass implements RenderSystem {
     }
   }
 
-  update(_time: number, _deltaTime: number, _driftOffset: number): void {
+  update(_time: number, _deltaTime: number): void {
     // No per-frame state needed
   }
 
@@ -250,11 +275,11 @@ export class BloomPass implements RenderSystem {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
-    gl.uniform1i(gl.getUniformLocation(this.bloomProgram, 'u_texture'), 0);
-    gl.uniform2f(gl.getUniformLocation(this.bloomProgram, 'u_texelSize'), 1.0 / bw, 1.0 / bh);
-    gl.uniform1f(gl.getUniformLocation(this.bloomProgram, 'u_bloomIntensity'), 1.5);
+    gl.uniform1i(this.bloomUniforms.texture, 0);
+    gl.uniform2f(this.bloomUniforms.texelSize, 1.0 / bw, 1.0 / bh);
+    gl.uniform1f(this.bloomUniforms.bloomIntensity, 1.5);
 
-    this.drawQuad(gl, this.bloomProgram);
+    this.drawQuad(gl, this.bloomPositionLocation);
 
     // --- Pass 2: Composite scene + bloom to screen ---
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -264,24 +289,24 @@ export class BloomPass implements RenderSystem {
 
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.sceneTexture);
-    gl.uniform1i(gl.getUniformLocation(this.compositeProgram, 'u_scene'), 0);
+    gl.uniform1i(this.compositeUniforms.scene, 0);
 
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, this.bloomTexture);
-    gl.uniform1i(gl.getUniformLocation(this.compositeProgram, 'u_bloom'), 1);
+    gl.uniform1i(this.compositeUniforms.bloom, 1);
 
-    gl.uniform1f(gl.getUniformLocation(this.compositeProgram, 'u_vignetteStrength'), 0.3);
+    gl.uniform1f(this.compositeUniforms.vignetteStrength, 0.3);
 
-    this.drawQuad(gl, this.compositeProgram);
+    this.drawQuad(gl, this.compositePositionLocation);
 
     gl.enable(gl.BLEND);
   }
 
-  private drawQuad(gl: WebGLRenderingContext, program: WebGLProgram): void {
+  private drawQuad(gl: WebGLRenderingContext, positionLocation: number): void {
+    if (positionLocation < 0) return;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
-    const posLoc = gl.getAttribLocation(program, 'a_position');
-    gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
-    gl.enableVertexAttribArray(posLoc);
+    gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(positionLocation);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
@@ -311,6 +336,10 @@ export class BloomPass implements RenderSystem {
     if (this.quadBuffer) gl.deleteBuffer(this.quadBuffer);
     if (this.bloomProgram) gl.deleteProgram(this.bloomProgram);
     if (this.compositeProgram) gl.deleteProgram(this.compositeProgram);
+    this.bloomPositionLocation = -1;
+    this.compositePositionLocation = -1;
+    this.bloomUniforms = { texture: null, texelSize: null, bloomIntensity: null };
+    this.compositeUniforms = { scene: null, bloom: null, vignetteStrength: null };
   }
 }
 
