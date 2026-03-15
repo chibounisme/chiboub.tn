@@ -128,7 +128,7 @@ export interface Nebula {
 export interface RenderSystem {
   init(gl: WebGLRenderingContext, width: number, height: number, config: SpaceConfig): void;
   resize(gl: WebGLRenderingContext, width: number, height: number): void;
-  update(time: number, deltaTime: number, driftOffset: number): void;
+  update(time: number, deltaTime: number): void;
   render(gl: WebGLRenderingContext): void;
   dispose(gl: WebGLRenderingContext): void;
 }
@@ -157,9 +157,11 @@ export interface SpaceConfig {
     minAlpha: number;
     maxAlpha: number;
   };
-  motion: {
-    driftSpeed: number;
-    warpExponent: number;
+  bloom: {
+    enabled: boolean;
+    disableOnLowEnd: boolean;
+    lowEndMaxCores: number;
+    lowEndMaxMemoryGb: number;
   };
 }
 
@@ -183,8 +185,10 @@ export const DEFAULT_CONFIG: SpaceConfig = {
     minAlpha: 0.02,
     maxAlpha: 0.07,
   },
-  motion: {
-    driftSpeed: 0.05,
-    warpExponent: 1.5,
+  bloom: {
+    enabled: true,
+    disableOnLowEnd: true,
+    lowEndMaxCores: 4,
+    lowEndMaxMemoryGb: 4,
   },
 };

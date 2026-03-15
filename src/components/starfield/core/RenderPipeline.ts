@@ -32,9 +32,9 @@ export class RenderPipeline {
     }
   }
 
-  update(time: number, deltaTime: number, driftOffset: number): void {
+  update(time: number, deltaTime: number): void {
     for (const system of this.systems) {
-      system.update(time, deltaTime, driftOffset);
+      system.update(time, deltaTime);
     }
   }
 
