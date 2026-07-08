@@ -51,14 +51,14 @@ A single-page React application that serves a personal homepage and an MDX-power
 ### Prerequisites
 
 - [Node.js](https://nodejs.org) 20 or newer
-- npm (bundled with Node.js)
+- [pnpm](https://pnpm.io) 11 or newer
 
 ### Installation
 
 ```bash
 git clone https://github.com/chibounisme/chiboub.tn.git
 cd chiboub.tn
-npm install
+pnpm install
 ```
 
 ### Configuration
@@ -70,7 +70,7 @@ No environment variables are required to run the project locally.
 Start the development server with hot module replacement:
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 ## 📖 Usage
@@ -78,10 +78,10 @@ npm run dev
 ### Development & build
 
 ```bash
-npm run dev      # start the Vite dev server
-npm run lint     # lint the project with ESLint
-npm run build    # build to dist/ and copy index.html to 404.html for SPA routing
-npm run preview  # preview the production build locally
+pnpm dev      # start the Vite dev server
+pnpm lint     # lint the project with ESLint
+pnpm build    # build to dist/ and copy index.html to 404.html for SPA routing
+pnpm preview  # preview the production build locally
 ```
 
 ### Writing posts
@@ -122,10 +122,10 @@ src/
 
 | Script            | Description                                                            |
 | ----------------- | --------------------------------------------------------------------- |
-| `npm run dev`     | Start the Vite development server with HMR.                            |
-| `npm run build`   | Build to `dist/` and copy `index.html` to `404.html` for SPA routing. |
-| `npm run lint`    | Lint the codebase with ESLint.                                        |
-| `npm run preview` | Serve the production build locally for a final check.                 |
+| `pnpm dev`     | Start the Vite development server with HMR.                            |
+| `pnpm build`   | Build to `dist/` and copy `index.html` to `404.html` for SPA routing. |
+| `pnpm lint`    | Lint the codebase with ESLint.                                        |
+| `pnpm preview` | Serve the production build locally for a final check.                 |
 
 ## 🔗 Related Repositories
 
