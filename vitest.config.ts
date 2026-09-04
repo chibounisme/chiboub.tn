@@ -5,7 +5,6 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
-      fsModuleCache: true,
       environment: 'jsdom',
       include: ['tests/**/*.test.{ts,tsx}'],
       setupFiles: ['tests/setup.ts'],
