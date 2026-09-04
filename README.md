@@ -1,136 +1,59 @@
 # chiboub.tn
 
-_Mohamed Chiboub's personal portfolio and blog, rendered over a hand-written WebGL starfield._
+Mohamed Chiboub's personal blog, built with React 19, TypeScript 7, Vite 8, Tailwind 4, and MDX.
 
-![React](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?style=flat-square&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-8-646CFF?style=flat-square&logo=vite&logoColor=white)
-![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?style=flat-square&logo=tailwindcss&logoColor=white)
-![React Router](https://img.shields.io/badge/React_Router-7-CA4245?style=flat-square&logo=reactrouter&logoColor=white)
-![MDX](https://img.shields.io/badge/MDX-3-1B1F24?style=flat-square&logo=mdx&logoColor=white)
-![WebGL](https://img.shields.io/badge/WebGL-Custom-990000?style=flat-square&logo=webgl&logoColor=white)
+## Development
 
-**Live:** https://chiboub.tn
-
-A single-page React application that serves a personal homepage and an MDX-powered blog, sitting on top of a from-scratch WebGL background that renders animated stars, galaxies, nebulae, and drifting dust clouds. Content is authored in MDX with frontmatter and build-time syntax highlighting, statically built with Vite, and deployed to GitHub Pages. It is the source behind [chiboub.tn](https://chiboub.tn).
-
-## 📑 Table of Contents
-
-- [Features](#-features)
-- [Tech Stack](#-tech-stack)
-- [Getting Started](#-getting-started)
-- [Usage](#-usage)
-- [Project Structure](#️-project-structure)
-- [Scripts](#-scripts)
-- [Related Repositories](#-related-repositories)
-- [Author](#-author)
-
-## ✨ Features
-
-- **MDX blog** — posts are plain `.mdx` files with frontmatter (title, date, description, tags); slugs are derived from filenames and posts are sorted by date automatically.
-- **Build-time syntax highlighting** — code blocks are highlighted with [Shiki](https://shiki.style) (`vitesse-dark` theme) via a rehype plugin, alongside GitHub Flavored Markdown support.
-- **Custom WebGL starfield** — a from-scratch renderer with no 3D framework, composed of independent star, galaxy, nebula, and dust-cloud systems, procedurally generated textures, and a bloom post-processing pass.
-- **Adaptive quality** — a quality manager and low-end-device detection (CPU cores / device memory) scale detail and disable bloom on constrained hardware to keep the animation smooth.
-- **Client-side routing** — home, blog index, and individual post routes handled by React Router, with a `404.html` fallback so deep links resolve on GitHub Pages.
-- **Retro, dark, pixel-inspired UI** — styled with Tailwind CSS v4 and a Fira Code monospace typeface.
-
-## 🧰 Tech Stack
-
-- **Framework:** React 19
-- **Language:** TypeScript 5.9
-- **Build tool:** Vite 8
-- **Styling:** Tailwind CSS v4, PostCSS
-- **Routing:** React Router 7
-- **Content:** MDX (`@mdx-js/rollup`, `@mdx-js/react`), remark GFM + frontmatter, `remark-mdx-frontmatter`
-- **Highlighting:** Shiki (`@shikijs/rehype`)
-- **Graphics:** Custom WebGL renderer
-- **Hosting:** GitHub Pages via GitHub Actions
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org) 20 or newer
-- [pnpm](https://pnpm.io) 11 or newer
-
-### Installation
+Use Node **24.16.0** (`nvm use`) and **pnpm 11.10.0**.
 
 ```bash
-git clone https://github.com/chibounisme/chiboub.tn.git
-cd chiboub.tn
-pnpm install
-```
-
-### Configuration
-
-No environment variables are required to run the project locally.
-
-### Running
-
-Start the development server with hot module replacement:
-
-```bash
+pnpm install --frozen-lockfile
 pnpm dev
 ```
 
-## 📖 Usage
+Open http://127.0.0.1:5173. No environment variables or backend services are required.
 
-### Development & build
+| Command                | Purpose                                                                |
+| ---------------------- | ---------------------------------------------------------------------- |
+| `pnpm check`           | Formatting, lint, tests with coverage, type checking, production build |
+| `pnpm typecheck:watch` | Continuous type checking alongside Vite                                |
+| `pnpm test:watch`      | Vitest watch mode                                                      |
+| `pnpm format`          | Format the codebase                                                    |
+| `pnpm build`           | Build `dist/` with route entry points for GitHub Pages                 |
+| `pnpm preview`         | Serve the production build locally                                     |
 
-```bash
-pnpm dev      # start the Vite dev server
-pnpm lint     # lint the project with ESLint
-pnpm build    # build to dist/ and copy index.html to 404.html for SPA routing
-pnpm preview  # preview the production build locally
-```
+## Code structure
 
-### Writing posts
+- `src/App.tsx` defines routes; `Layout.tsx` owns navigation, focus, page error recovery, and the persistent sky.
+- `src/components/space/` separates canvas lifecycles from drawing. Animation stops when paused, when the tab is hidden, or by default for reduced motion.
+- `src/lib/posts.ts` discovers MDX content; `postCatalog.ts` sorts posts and resolves slugs.
+- `src/prose.css` styles article content. MDX adapters handle links, scrollable code/tables, and image loading.
+- `scripts/frontmatter.ts` validates post metadata during compilation. MDX and syntax highlighting compile at build time.
+- Analytics loads only in production on `chiboub.tn`.
 
-Blog posts live in `src/content/blog/` as `.mdx` files. Each post begins with frontmatter, and the filename becomes the URL slug (`src/content/blog/my-post.mdx` → `/blog/my-post`):
+TypeScript 7 supplies the native checker through `@typescript/native`. The `typescript` alias supplies the TypeScript 6 compiler API required by ESLint, following Microsoft's [side-by-side configuration](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/).
+
+## Writing posts
+
+Add `.mdx` files to `src/content/blog/`. `my-post.mdx` becomes `/blog/my-post`.
 
 ```mdx
 ---
-title: My Post
-date: 2026-01-01
-description: A short summary shown in listings.
-tags: [web, notes]
+title: My post
+date: '2026-09-04'
+description: A short introduction above the article.
+tags: [typescript, notes]
 ---
 
-Your MDX content here.
+Your article here.
 ```
 
-## 🗂️ Project Structure
+Title and a valid `YYYY-MM-DD` date are required; description and tags are optional. Posts appear newest first. Internal links use client-side navigation. The index shows an empty state until posts are added.
 
-```
-src/
-├── components/
-│   ├── starfield/        # WebGL background renderer
-│   │   ├── core/         # render pipeline, quality manager, resource manager
-│   │   ├── systems/      # star, galaxy, nebula, dust-cloud, bloom systems
-│   │   └── textures/     # procedural texture generation
-│   ├── Layout.tsx        # page shell
-│   ├── Icons.tsx
-│   └── MDXComponents.tsx # element mapping for MDX rendering
-├── content/blog/         # MDX blog posts
-├── lib/posts.ts          # post loading, slugs, sorting
-├── pages/                # Home, Blog, BlogPost
-├── App.tsx               # routes + starfield mount
-└── main.tsx              # entry point
-```
+## Verification and deployment
 
-## 📜 Scripts
+Tests cover navigation, error recovery, MDX compilation, analytics, motion preferences, animation cleanup, text exclusion, and deterministic planet drawing. Coverage thresholds are 85% for lines, statements, and functions and 80% for branches; HTML reports appear in `coverage/`. Canvas tests record drawing commands; visual layout also requires browser checks.
 
-| Script            | Description                                                            |
-| ----------------- | --------------------------------------------------------------------- |
-| `pnpm dev`     | Start the Vite development server with HMR.                            |
-| `pnpm build`   | Build to `dist/` and copy `index.html` to `404.html` for SPA routing. |
-| `pnpm lint`    | Lint the codebase with ESLint.                                        |
-| `pnpm preview` | Serve the production build locally for a final check.                 |
+GitHub Actions runs `pnpm check` on pull requests, pushes to `main`, and manual runs. Only successful non-PR runs deploy to GitHub Pages. `public/CNAME` sets the domain. The build emits entry points for About, the legacy blog index, and each article, so known deep links resolve on Pages. `404.html` handles unknown URLs. Pages still render content on the client.
 
-## 🔗 Related Repositories
-
-- [chibounis.me](https://github.com/chibounisme/chibounis.me) — companion personal site.
-
-## 👤 Author
-
-**Mohamed Chiboub** — [@chibounisme](https://github.com/chibounisme)
+Routes: `/` (Writing), `/about`, and `/blog/:slug`. `/blog` redirects to `/`; unmatched URLs show a not-found page. The large planet appears only on Writing.

@@ -1,0 +1,9 @@
+minimumReleaseAgeExclude:
+  - eslint@10.10.0
+
+# Keep dependency layout consistent between local development and CI.
+enableGlobalVirtualStore: false
+
+# Patched parser for GHSA-82x6-q7mm-w9cf and GHSA-v5mp-jgw5-2x6j.
+overrides:
+  'remark-mdx-frontmatter>toml': '^4.2.0'
