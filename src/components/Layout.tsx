@@ -1,79 +1,90 @@
-import { Link, useLocation } from 'react-router-dom';
-import type { ReactNode } from 'react';
-import { GitHubIcon, LinkedInIcon } from './Icons';
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { Link, NavLink, useLocation } from 'react-router-dom';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import PixelSky from './space/PixelSky';
+import PixelMoon from './space/PixelMoon';
+import PageErrorBoundary from './PageErrorBoundary';
 
-interface LayoutProps {
-  children: ReactNode;
-}
-
-export default function Layout({ children }: LayoutProps) {
+export default function Layout({ children }: { children: ReactNode }) {
   const location = useLocation();
-  const navLinkClass = (isActive: boolean) =>
-    [
-      'text-[0.8rem] transition-colors duration-100 hover:no-underline sm:text-sm',
-      isActive
-        ? 'text-site-accent'
-        : 'text-site-text-dim hover:text-site-accent',
-    ].join(' ');
+  const siteRef = useRef<HTMLDivElement>(null);
+  const mainRef = useRef<HTMLElement>(null);
+  const previousPath = useRef(location.pathname);
+  const reducedMotion = useReducedMotion();
+  const [motionOverride, setMotionOverride] = useState<boolean | null>(null);
+  const playing = motionOverride ?? !reducedMotion;
+
+  useLayoutEffect(() => {
+    if (previousPath.current === location.pathname) return;
+    previousPath.current = location.pathname;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    mainRef.current?.focus({ preventScroll: true });
+  }, [location.pathname]);
 
   return (
-    <div className="relative z-10 flex min-h-screen flex-col">
-      <nav className="sticky top-0 z-20 border-b border-site-surface-border bg-black/80 backdrop-blur-sm">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-x-4 px-3 py-3 sm:px-6 lg:px-8">
-          <Link
-            to="/"
-            className="text-sm font-semibold tracking-[0.02em] text-site-accent transition-colors duration-100 hover:text-white hover:no-underline sm:text-[0.95rem]"
-          >
-            chiboub.tn
+    <div className="site" ref={siteRef}>
+      <PixelSky
+        containerRef={siteRef}
+        playing={playing}
+        routeKey={location.pathname}
+      />
+      <a className="skip-link" href="#main-content">
+        Skip to content
+      </a>
+      <div className="site-shell">
+        <header className="site-header">
+          <Link className="wordmark" to="/" aria-label="Chiboub home">
+            <PixelMoon />
+            <span>chiboub.</span>
           </Link>
-          <div className="flex items-center gap-3 sm:gap-5">
-            <Link
+          <nav className="site-nav" aria-label="Main navigation">
+            <NavLink
               to="/"
-              className={navLinkClass(location.pathname === '/')}
+              end
+              className={({ isActive }) =>
+                isActive || location.pathname.startsWith('/blog/')
+                  ? 'is-active'
+                  : undefined
+              }
             >
-              home
-            </Link>
-            <Link
-              to="/blog"
-              className={navLinkClass(location.pathname.startsWith('/blog'))}
-            >
-              blog
-            </Link>
+              writing
+            </NavLink>
+            <NavLink to="/about">about</NavLink>
+          </nav>
+        </header>
+        <main
+          id="main-content"
+          ref={mainRef}
+          tabIndex={-1}
+          className="site-main"
+        >
+          <div key={location.pathname} className="page-view">
+            <PageErrorBoundary>{children}</PageErrorBoundary>
           </div>
-        </div>
-      </nav>
-
-      <main className="mx-auto flex w-full max-w-6xl flex-1 px-3 pb-14 pt-6 sm:px-6 sm:pb-16 sm:pt-8 lg:px-8 lg:pt-10">
-        {children}
-      </main>
-
-      <footer className="border-t border-site-surface-border bg-black/80 px-3 py-6 text-center sm:px-6 lg:px-8">
-        <div className="mx-auto w-full max-w-6xl">
-        <div className="mb-3 flex justify-center gap-6 [&_svg]:size-4.5">
-          <a
-            href="https://github.com/chibounisme"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="GitHub"
-            className="flex items-center text-site-text-dim transition-colors duration-100 hover:text-site-accent hover:no-underline"
-          >
-            <GitHubIcon />
-          </a>
-          <a
-            href="https://www.linkedin.com/in/chiboub/"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="LinkedIn"
-            className="flex items-center text-site-text-dim transition-colors duration-100 hover:text-site-accent hover:no-underline"
-          >
-            <LinkedInIcon />
-          </a>
-        </div>
-        <p className="text-xs text-site-text-dim">
-          Built with React, Tailwind, and a pixelated WebGL night sky.
-        </p>
-        </div>
-      </footer>
+        </main>
+        <footer className="site-footer">
+          <p>Mohamed Chiboub</p>
+          <div className="footer-links">
+            <button
+              type="button"
+              className="sky-control"
+              aria-label={
+                playing ? 'Pause sky animation' : 'Play sky animation'
+              }
+              onClick={() => setMotionOverride(!playing)}
+            >
+              {playing ? 'pause sky' : 'play sky'}
+            </button>
+            <a
+              href="https://github.com/chibounisme"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+          </div>
+        </footer>
+      </div>
     </div>
   );
 }
