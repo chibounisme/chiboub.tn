@@ -7,7 +7,7 @@ export interface PostFrontmatter {
   tags?: string[];
 }
 
-interface PostMeta extends PostFrontmatter {
+export interface PostMeta extends PostFrontmatter {
   tags: string[];
   slug: string;
 }
@@ -15,6 +15,11 @@ interface PostMeta extends PostFrontmatter {
 export interface PostModule {
   default: ComponentType;
   frontmatter: PostFrontmatter;
+}
+
+export interface PostEntry {
+  meta: PostMeta;
+  Component: ComponentType;
 }
 
 export function createPostCatalog(modules: Record<string, PostModule>) {
@@ -30,6 +35,21 @@ export function createPostCatalog(modules: Record<string, PostModule>) {
     } satisfies PostMeta,
     Component: module.default,
   }));
+
+  const slugs = new Set<string>();
+  for (const { meta } of entries) {
+    if (
+      !meta.slug ||
+      meta.slug === '.' ||
+      meta.slug === '..' ||
+      meta.slug.includes('\\')
+    ) {
+      throw new Error('Post filenames must have a non-empty, valid slug.');
+    }
+    if (slugs.has(meta.slug))
+      throw new Error(`Duplicate post slug: ${meta.slug}`);
+    slugs.add(meta.slug);
+  }
 
   entries.sort(
     (a, b) =>

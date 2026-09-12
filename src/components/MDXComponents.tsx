@@ -1,5 +1,4 @@
 import type { ComponentPropsWithoutRef, JSX, ReactNode } from 'react';
-import { Link } from 'react-router-dom';
 
 type HtmlComponents = {
   [Tag in keyof JSX.IntrinsicElements]?: (
@@ -31,14 +30,6 @@ export const mdxComponents = {
         : rel;
     const attributes = { ...props, target: linkTarget, rel: linkRel, download };
 
-    if (
-      href?.startsWith('/') &&
-      !external &&
-      !href.includes('#') &&
-      (download === undefined || download === false)
-    ) {
-      return <Link to={href} {...attributes} />;
-    }
     return <a href={href} {...attributes} />;
   },
   pre: (props) => <pre tabIndex={0} {...props} />,

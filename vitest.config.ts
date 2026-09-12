@@ -13,7 +13,7 @@ export default mergeConfig(
       coverage: {
         provider: 'v8',
         include: ['src/**/*.{ts,tsx}'],
-        exclude: ['src/main.tsx', 'src/**/*.d.ts'],
+        exclude: ['src/analytics.ts', 'src/**/*.d.ts'],
         reporter: ['text', 'html'],
         thresholds: { lines: 85, statements: 85, functions: 85, branches: 80 },
       },
