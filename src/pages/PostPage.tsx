@@ -1,30 +1,15 @@
-import { useParams, Link } from 'react-router-dom';
 import { MDXProvider } from '@mdx-js/react';
-import { getPostBySlug } from '../lib/posts';
+import type { PostEntry } from '../lib/postCatalog';
 import { mdxComponents } from '../components/MDXComponents';
 import { formatPostDate } from '../lib/dates';
-import { usePageTitle } from '../hooks/usePageTitle';
 
-export default function PostPage() {
-  const { slug } = useParams<{ slug: string }>();
-  const post = slug ? getPostBySlug(slug) : undefined;
-  usePageTitle(post?.meta.title ?? 'Post not found');
-  if (!post) {
-    return (
-      <section className="about-page">
-        <h1>This post isn't here.</h1>
-        <Link to="/" className="back-link">
-          ← All posts
-        </Link>
-      </section>
-    );
-  }
+export default function PostPage({ post }: { post: PostEntry }) {
   const { meta, Component } = post;
   return (
     <article>
-      <Link to="/" className="back-link">
+      <a href="/blog/" className="back-link">
         ← All posts
-      </Link>
+      </a>
       <header className="article-header">
         <time dateTime={meta.date}>{formatPostDate(meta.date, true)}</time>
         <h1>{meta.title}</h1>
