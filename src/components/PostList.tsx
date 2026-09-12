@@ -1,4 +1,3 @@
-import { Link } from 'react-router-dom';
 import { getAllPosts } from '../lib/posts';
 import { formatPostDate } from '../lib/dates';
 
@@ -12,9 +11,7 @@ export default function PostList() {
           <time dateTime={post.date} title={formatPostDate(post.date, true)}>
             {formatPostDate(post.date)}
           </time>
-          <Link to={`/blog/${encodeURIComponent(post.slug)}`}>
-            {post.title}
-          </Link>
+          <a href={`/blog/${encodeURIComponent(post.slug)}/`}>{post.title}</a>
         </li>
       ))}
     </ul>

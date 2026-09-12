@@ -1,10 +1,6 @@
-import '@testing-library/jest-dom/vitest';
-import { cleanup } from '@testing-library/react';
-import { afterEach, beforeEach, vi } from 'vitest';
-import { installBrowserMocks } from './browser';
+import { afterEach, vi } from 'vitest';
 
-beforeEach(installBrowserMocks);
 afterEach(() => {
-  cleanup();
+  document.body.replaceChildren();
   vi.unstubAllGlobals();
 });

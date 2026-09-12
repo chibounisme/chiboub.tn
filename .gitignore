@@ -47,3 +47,6 @@ coverage
 # OS junk
 .DS_Store
 Thumbs.db
+
+# Build-time renderer (never published)
+.build
