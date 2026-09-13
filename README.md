@@ -68,7 +68,13 @@ After building, run `pnpm audit:performance` with Chrome installed (or set `CHRO
 
 Local Lighthouse results measure the production build under simulated conditions. Verify the deployed URLs with PageSpeed Insights after release; hosting latency and Lighthouse version differences can change scores.
 
-GitHub Actions validates pull requests. Pushes to `main` and manual runs on `main` validate and then deploy `dist/` to Pages. Deployment requires the build job to pass and a configured Pages site. If Pages is not configured, validation still runs and the workflow reports a warning; configure Pages and rerun the workflow to deploy. Official actions are pinned to commit SHAs; installation uses the committed lockfile. Only the deployment job has Pages write permissions.
+GitHub Actions separates PR validation from production deployment:
+
+- `ci.yml` (PR checks) validates pull requests targeting `main`, using a read-only token and no deployment environment or Pages artifact. New commits cancel obsolete checks for that PR.
+- `deploy.yml` (Deploy site) runs on pushes to `main` or manual dispatch. Both jobs are restricted to `main`, including manual runs. It validates the merged commit, uploads the resulting `dist/` artifact, and deploys that same artifact only after the build succeeds. Production runs share a concurrency group without cancelling an active deployment.
+- `.github/actions/check-site/action.yml` shares dependency setup, formatting, lint, tests, type checking, build, Lighthouse audits, and report retention between the two workflows. Changes to validation apply to both paths.
+
+Only the publish job has Pages and OIDC write permissions, and it uses the `github-pages` environment. Build jobs remain read-only. Deployment uses the artifact from its own run; PR artifacts are never promoted into production. A missing or invalid Pages configuration fails deployment instead of silently skipping it. Official actions are pinned to commit SHAs, checkout does not persist credentials, and dependency installation uses the committed lockfile.
 
 ## GitHub Pages and custom domain
 
