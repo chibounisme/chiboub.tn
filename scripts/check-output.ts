@@ -105,9 +105,11 @@ export async function checkOutput(root: string) {
         }
       }
       if (attrs.href) {
-        const resource = tag === 'link' && (attrs.rel ?? '').split(/\s+/).some(
-          (rel) => ['stylesheet', 'icon', 'preload', 'modulepreload'].includes(rel),
-        );
+        const resource = ['image', 'use', 'feImage'].includes(tag) ||
+          (tag === 'link' && (attrs.rel ?? '').split(/\s+/).some(
+            (rel) => ['stylesheet', 'icon', 'preload', 'modulepreload', 'prefetch'].includes(rel),
+          ));
+        if (resource && attrs.href.startsWith('#')) continue;
         if (resource || tag === 'a') reference(attrs.href, file, resource);
       }
     }

@@ -43,6 +43,8 @@ it.each([
   ['event handler', 'index.html', page('<button onclick="alert(1)">Click</button>'), 'Executable content'],
   ['script URL', 'index.html', page('<a href="javascript:alert(1)">Click</a>'), 'Executable content'],
   ['SVG script', 'image.svg', '<svg><script>alert(1)</script></svg>', 'Executable content'],
+  ['SVG image reference', 'image.svg', '<svg><image href="/missing.webp" /></svg>', 'Missing local target'],
+  ['remote SVG reference', 'image.svg', '<svg><use href="https://example.com/icons.svg#icon" /></svg>', 'External or inline asset'],
   ['published script', 'app.js', 'alert(1)', 'Unexpected published file'],
   ['source map', 'site.css.map', '{}', 'Unexpected published file'],
   ['unused asset', 'unused.svg', svg, 'Unreferenced published asset'],
