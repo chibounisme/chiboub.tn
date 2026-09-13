@@ -11,7 +11,7 @@ runs:
       shell: bash
       run: pnpm exec tsc --version
 
-    - name: Lint TypeScript and CSS and check formatting
+    - name: Lint TypeScript and check formatting
       shell: bash
       run: pnpm lint
 

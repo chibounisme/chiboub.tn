@@ -28,7 +28,7 @@ Open http://127.0.0.1:5173. Development renders the same templates on request; r
 - `src/render.tsx` renders complete HTML documents, route metadata, and the About alias.
 - `src/components/` and `src/pages/` are build-time React templates. Use ordinary anchors; browser hooks and event handlers do not run on the published site.
 - `src/lib/posts.ts` discovers local MDX files during the build. Article code is never shipped to the browser.
-- `src/index.css` and `src/prose.css` define the layout and article styles, compiled with Tailwind.
+- `src/index.css` configures Tailwind; page and article styles use utilities in the components.
 - `scripts/build.ts` bundles the renderer into temporary `.build/`, builds CSS, then writes HTML, a sitemap, and robots.txt into `dist/`. The temporary renderer is removed and never uploaded.
 - `scripts/frontmatter.ts` validates post metadata. MDX and Shiki syntax highlighting run at build time. Only trusted, repository-authored MDX should be compiled: it can execute code during the build.
 - Text uses Arial, Helvetica, or Liberation Sans with the browser's sans-serif fallback. Dates and code use Courier New, Courier, or Liberation Mono with the browser's monospace fallback. All fonts come from the visitor's device; appearance can vary slightly by operating system.
