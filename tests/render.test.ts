@@ -14,7 +14,7 @@ beforeEach(() => {
 describe('static pages', () => {
   it('renders the complete homepage, native navigation, and no React runtime', () => {
     const doc = parse('/');
-    expect(doc.title).toBe('About me — Mohamed Chiboub');
+    expect(doc.title).toBe('About me | Mohamed Chiboub');
     expect(doc.querySelector('main')?.textContent).toContain(
       "I'm Mohamed Chiboub",
     );
@@ -33,7 +33,7 @@ describe('static pages', () => {
   });
   it('renders a blog index without an introductory heading', () => {
     const doc = parse('/blog/');
-    expect(doc.title).toBe('Blog — Mohamed Chiboub');
+    expect(doc.title).toBe('Blog | Mohamed Chiboub');
     expect(doc.querySelector('main')?.textContent).toBe('Nothing here yet.');
     expect(doc.querySelector('h1')).toBeNull();
     expect(doc.querySelector('nav a[aria-current]')?.getAttribute('href')).toBe(
@@ -108,7 +108,7 @@ describe('static pages', () => {
       Component: Article,
     });
     const doc = parse('/blog/safe/');
-    expect(doc.title).toBe('<script>alert(1)</script> — Mohamed Chiboub');
+    expect(doc.title).toBe('<script>alert(1)</script> | Mohamed Chiboub');
     expect(
       doc.querySelector('meta[name="description"]')?.getAttribute('content'),
     ).toContain('an article by Mohamed Chiboub');
