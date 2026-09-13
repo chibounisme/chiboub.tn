@@ -55,7 +55,19 @@ describe('static pages', () => {
     (path) => {
       expect(renderPage(path, assets).status).toBe(404);
       const doc = parse(path);
-      expect(doc.querySelector('h1')?.textContent).toBe('Page not found.');
+      expect(doc.querySelector('h1')?.textContent).toBe(
+        'What are you doing here, jabroni?',
+      );
+      expect(doc.querySelector('main p')?.textContent).toBe(
+        'This page doesn’t exist. Try the links above.',
+      );
+      expect(doc.querySelector('main img')?.getAttribute('src')).toBe(
+        '/rock-404.webp',
+      );
+      expect(doc.querySelector('main img')?.getAttribute('alt')).toContain(
+        'pointing up toward the navigation links',
+      );
+      expect(doc.querySelector('main a')).toBeNull();
       expect(
         doc.querySelector('meta[name="robots"]')?.getAttribute('content'),
       ).toBe('noindex');

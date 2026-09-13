@@ -9,6 +9,8 @@ const paths = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map(
   ([, url]) => new URL(url!).pathname,
 );
 if (!paths.length) throw new Error('Build the site before running Lighthouse.');
+// The error page must meet the same performance and transfer budgets.
+paths.push('/404.html');
 
 const categories = ['performance', 'accessibility', 'best-practices', 'seo'];
 const budgets = {
@@ -75,8 +77,12 @@ try {
             ),
           ]),
         );
+        // Error pages deliberately use noindex; the other categories still apply.
         const passed =
-          Object.values(scores).every((score) => score === 100) &&
+          Object.entries(scores).every(
+            ([category, score]) =>
+              (path === '/404.html' && category === 'seo') || score === 100,
+          ) &&
           Object.entries(budgets).every(
             ([audit, limit]) => metrics[audit]! <= limit,
           );
