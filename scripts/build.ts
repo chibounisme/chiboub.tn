@@ -20,7 +20,7 @@ try {
     build: {
       outDir: output,
       manifest: true,
-      rolldownOptions: { input: ['src/index.css', 'src/analytics.ts'] },
+      rolldownOptions: { input: ['src/index.css', 'src/prose.css'] },
     },
   });
   const renderer = (await import(
@@ -30,8 +30,8 @@ try {
     await readFile(join(output, '.vite/manifest.json'), 'utf8'),
   ) as Manifest;
   const css = manifest['src/index.css']?.file;
-  const analytics = manifest['src/analytics.ts']?.file;
-  if (!css || !analytics) throw new Error('Missing production assets.');
+  const articleCss = manifest['src/prose.css']?.file;
+  if (!css || !articleCss) throw new Error('Missing production stylesheets.');
   const paths = renderer.pagePaths();
   for (const path of [...paths, '/about/', '/404.html']) {
     // Decode only the generated filename; the URL remains encoded in links and metadata.
@@ -43,8 +43,10 @@ try {
     await mkdir(dirname(target), { recursive: true });
     await writeFile(
       target,
-      renderer.renderPage(path, { css: '/' + css, analytics: '/' + analytics })
-        .html,
+      renderer.renderPage(path, {
+        css: '/' + css,
+        articleCss: '/' + articleCss,
+      }).html,
     );
   }
   await writeFile(

@@ -3,7 +3,7 @@ import { renderPage, pagePaths } from '../src/render';
 import * as posts from '../src/lib/posts';
 import Article, { frontmatter } from './fixtures/article.mdx';
 
-const assets = { css: '/assets/site.css', analytics: '/assets/analytics.js' };
+const assets = { css: '/assets/site.css', articleCss: '/assets/prose.css' };
 const parse = (path: string) =>
   new DOMParser().parseFromString(renderPage(path, assets).html, 'text/html');
 beforeEach(() => {
@@ -26,9 +26,7 @@ describe('static pages', () => {
     );
     expect(doc.querySelector('main h1, canvas, footer')).toBeNull();
     expect(doc.querySelector('main')?.id).toBe('main-content');
-    expect(
-      [...doc.scripts].map((script) => script.getAttribute('src')),
-    ).toEqual([assets.analytics]);
+    expect(doc.scripts).toHaveLength(0);
     expect(pagePaths()).toEqual(['/', '/blog/']);
   });
   it('renders a blog index without an introductory heading', () => {
@@ -112,6 +110,6 @@ describe('static pages', () => {
     expect(
       doc.querySelector('meta[name="description"]')?.getAttribute('content'),
     ).toContain('an article by Mohamed Chiboub');
-    expect(doc.scripts.length).toBe(1);
+    expect(doc.scripts).toHaveLength(0);
   });
 });
