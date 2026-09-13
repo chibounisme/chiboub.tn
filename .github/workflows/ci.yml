@@ -3,9 +3,13 @@ name: PR checks
 on:
   pull_request:
     branches: ['main']
+    types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
+
+env:
+  HUSKY: '0'
 
 concurrency:
   group: pr-checks-${{ github.event.pull_request.number }}
@@ -24,3 +28,30 @@ jobs:
 
       - name: Validate and build site
         uses: ./.github/actions/check-site
+
+  commits:
+    name: Commit policy
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Check every PR commit
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm exec commitlint --from "$BASE_SHA" --to "$HEAD_SHA" --verbose
+
+      - name: Check PR title and reserve room for its number
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          printf '%s\n' "$PR_TITLE" | pnpm exec commitlint --verbose
+          node --input-type=module -e 'if ([...process.env.PR_TITLE].length > 64) { console.error("PR titles must be at most 64 characters."); process.exit(1); }'
