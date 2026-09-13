@@ -37,6 +37,16 @@ Open http://127.0.0.1:5173. Development renders the same templates on request; r
 
 React, MDX, Vite, and TypeScript are development dependencies. The native compiler is TypeScript 7.0.2, the latest stable release verified on September 13, 2026. The `typescript` alias supplies the TypeScript 6 compiler API required by ESLint; `tsc` and CI type checks use the native TypeScript 7 compiler.
 
+## Contributing
+
+`pnpm install` installs the repository's Husky hooks. Before committing, lint-staged formats and lints staged TypeScript, CSS, and document/configuration files, including Tailwind class sorting. It preserves unstaged changes. The commit-message hook enforces Conventional Commits through commitlint.
+
+Use `type(scope): short description`, for example `fix(blog): correct article links`. Allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. Scope is optional. Keep commit titles at most 72 characters, start the description in lowercase, and omit a final period. Separate an optional body with a blank line and wrap body/footer lines at 100 characters. Use the body to explain why a change is needed; avoid copying logs or entire PR descriptions.
+
+PR titles follow the same convention, with a 64-character limit to leave room for GitHub's PR-number suffix. CI checks every commit introduced by the PR and its title, including title edits. The repository uses squash merges with the PR title as the commit title and an empty default body. Required PR checks enforce the policy even when local hooks are disabled. Hook installation is disabled in CI; validation runs explicitly there.
+
+Use descriptive branches such as `feat/article-search`, `fix/broken-link`, or `chore/dependency-update`. After merging, delete the feature branch and fast-forward local `main`.
+
 ## Writing posts
 
 Add `.mdx` files to `src/content/blog/`. `my-post.mdx` becomes `/blog/my-post/`.
