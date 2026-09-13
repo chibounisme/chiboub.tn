@@ -16,7 +16,7 @@ describe('static pages', () => {
     const doc = parse('/');
     expect(doc.title).toBe('About me | Mohamed Chiboub');
     expect(doc.querySelector('main')?.textContent).toContain(
-      "I'm Mohamed Chiboub",
+      'I\'m Mohamed Chiboub',
     );
     expect(
       [...doc.querySelectorAll('nav a')].map((a) => a.textContent),

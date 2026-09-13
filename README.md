@@ -39,7 +39,7 @@ React, MDX, Vite, and TypeScript are development dependencies. The native compil
 
 ## Contributing
 
-`pnpm install` installs the repository's Husky hooks. Before committing, lint-staged formats and lints staged TypeScript, CSS, and document/configuration files, including Tailwind class sorting. It preserves unstaged changes. The commit-message hook enforces Conventional Commits through commitlint.
+`pnpm install` installs the repository's Husky hooks. Before committing, lint-staged runs ESLint fixes on staged source and configuration files, including Tailwind class sorting. It preserves unstaged changes. The commit-message hook enforces Conventional Commits through commitlint.
 
 Use `type(scope): short description`, for example `fix(blog): correct article links`. Allowed types are `build`, `chore`, `ci`, `docs`, `feat`, `fix`, `perf`, `refactor`, `revert`, `style`, and `test`. Scope is optional. Keep commit titles at most 72 characters, start the description in lowercase, and omit a final period. Separate an optional body with a blank line and wrap body/footer lines at 100 characters. Use the body to explain why a change is needed; avoid copying logs or entire PR descriptions.
 
@@ -68,9 +68,14 @@ Routes: `/` (About me), `/blog/`, and `/blog/:slug/`. `/about/` has a static red
 
 ## Validation and deployment
 
-`pnpm lint` enforces Prettier formatting, type-aware ESLint rules for TypeScript and templates, and Stylelint's standard rules for CSS. Tailwind's `@theme` and `@source` directives are explicitly allowed, and imports use string notation to preserve Tailwind's `source()` handling. Both linters reject warnings, and GitHub Actions runs this as a required step before tests, builds, and performance checks. Generated reports and build output are excluded from source linting.
+`pnpm lint` runs ESLint with zero warnings allowed. All source checks and automatic fixes are configured in `eslint.config.ts`; `pnpm format` runs `eslint --fix`, and `pnpm format:check` is an alias for the read-only lint command. CI and the staged-file hook use the same configuration.
 
-Prettier uses Tailwind's official plugin with `src/index.css` as its v4 theme entry point, enforcing Tailwind's recommended class ordering and removing duplicate classes. Use `pnpm format` to apply formatting; CI uses `pnpm lint` to check it without rewriting files.
+- TypeScript and JSX use type-aware linting and ESLint Stylistic: two-space indentation, single quotes, semicolons, and trailing commas on multiline structures.
+- Tailwind classes in TSX and MDX use the official class order and remove duplicates and unnecessary whitespace, using `src/index.css` as the theme entry point.
+- JSON/JSONC and YAML use their ESLint language plugins for syntax, consistency, and style fixes. HTML/SVG use HTML ESLint for indentation, quotes, spacing, and duplicate attributes.
+- CSS uses ESLint's CSS plugin with Tailwind syntax support. Markdown uses the GitHub-flavored Markdown rules; MDX uses its own parser and Tailwind checks. CSS and prose retain author-controlled layout rather than automatic full-file reformatting. Stylistic's JavaScript rules are deliberately scoped away from MDX prose.
+
+Generated output, dependency directories, reports, and `pnpm-lock.yaml` are ignored. The staged-file hook accepts ignored paths without warnings, so lockfile-only commits work normally. For editor fixes on save, enable the ESLint extension's `source.fixAll.eslint` action and include the languages above in `eslint.validate`. No separate formatter configuration is needed.
 
 `pnpm check` covers metadata validation, HTML rendering, links, article content, and complete production builds. Integration tests add and remove an MDX post in an isolated temporary project and verify the resulting HTML, assets, sitemap, and absence of browser scripts and downloaded fonts. They also check that invalid content fails the build.
 
