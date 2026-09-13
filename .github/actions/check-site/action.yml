@@ -11,6 +11,10 @@ runs:
       shell: bash
       run: pnpm exec tsc --version
 
+    - name: Check dependency usage and declarations
+      shell: bash
+      run: pnpm check:dependencies
+
     - name: Lint and check style with ESLint
       shell: bash
       run: pnpm lint

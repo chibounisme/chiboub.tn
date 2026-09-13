@@ -39,6 +39,8 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
     );
     const post = join(root, 'src/content/blog/integration-post.mdx');
     await cp(join(project, 'tests/fixtures/article.mdx'), post);
+    await cp(join(project, 'public/favicon.svg'), join(root, 'src/content/blog/integration.svg'));
+    await writeFile(post, await readFile(post, 'utf8') + '\nimport illustration from \'./integration.svg\';\n\n<img src={illustration} alt="Imported illustration" width="100" height="100" loading="lazy" />\n');
     await run();
     const pages = [
       { path: 'index.html', stylesheets: 1 },
@@ -70,7 +72,7 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
               {
                 href: null,
                 as: 'image',
-                srcSet: '/rock-404-small.webp 348w, /rock-404.webp 580w',
+                srcSet: doc.querySelector('main img')?.getAttribute('srcset'),
                 sizes: '(max-width: 620px) calc(100vw - 48px), 580px',
               },
             ]
@@ -123,6 +125,11 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
       article.querySelector('meta[property="og:url"]')?.getAttribute('content'),
     ).toBe('https://chiboub.tn/blog/integration-post/');
     const assets = await readdir(join(root, 'dist/assets'));
+    expect(assets).toEqual(expect.arrayContaining([
+      expect.stringMatching(/^rock-404-[\w-]+\.webp$/),
+      expect.stringMatching(/^rock-404-small-[\w-]+\.webp$/),
+      expect.stringMatching(/^integration-[\w-]+\.svg$/),
+    ]));
     const scripts = assets.filter((name) => name.endsWith('.js'));
     expect(scripts).toHaveLength(0);
     for (const name of assets.filter((name) => name.endsWith('.css'))) {
@@ -137,6 +144,9 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
     );
     await rm(post);
     await run();
+    expect(await readdir(join(root, 'dist/assets'))).not.toEqual(expect.arrayContaining([
+      expect.stringMatching(/^integration-[\w-]+\.svg$/),
+    ]));
     await expect(
       readFile(join(root, 'dist/blog/integration-post/index.html')),
     ).rejects.toMatchObject({ code: 'ENOENT' });
@@ -144,16 +154,20 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
       await readFile(join(root, 'dist/sitemap.xml'), 'utf8'),
     ).not.toContain('integration-post');
     const oversized = join(root, 'public/oversized.webp');
+    const lastGoodHtml = await readFile(join(root, 'dist/index.html'), 'utf8');
     await writeFile(oversized, Buffer.alloc(80 * 1024 + 1));
     await expect(run()).rejects.toThrow(
       /Image budget exceeded: oversized.webp/,
     );
+    expect(await readFile(join(root, 'dist/index.html'), 'utf8')).toBe(lastGoodHtml);
+    await expect(readdir(join(root, '.build'))).rejects.toMatchObject({ code: 'ENOENT' });
     await rm(oversized);
     await writeFile(
       post,
       '---\ntitle: Broken\ndate: not-a-date\n---\nInvalid post',
     );
     await expect(run()).rejects.toThrow();
+    expect(await readFile(join(root, 'dist/index.html'), 'utf8')).toBe(lastGoodHtml);
   } finally {
     await rm(root, { recursive: true, force: true });
   }
