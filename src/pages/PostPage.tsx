@@ -1,4 +1,5 @@
 import { MDXProvider } from '@mdx-js/react';
+import { ArrowLeft } from 'lucide-react';
 import type { PostEntry } from '../lib/postCatalog';
 import { mdxComponents } from '../components/MDXComponents';
 import { formatPostDate } from '../lib/dates';
@@ -8,7 +9,11 @@ export default function PostPage({ post }: { post: PostEntry }) {
   return (
     <article>
       <a href="/blog/" className="back-link">
-        ← All posts
+        <ArrowLeft
+          aria-hidden="true"
+          className="mr-2 inline-block size-4 align-text-bottom"
+        />
+        All posts
       </a>
       <header className="article-header">
         <time dateTime={meta.date}>{formatPostDate(meta.date, true)}</time>
