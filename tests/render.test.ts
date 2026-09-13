@@ -3,7 +3,7 @@ import { renderPage, pagePaths } from '../src/render';
 import * as posts from '../src/lib/posts';
 import Article, { frontmatter } from './fixtures/article.mdx';
 
-const assets = { css: '/assets/site.css', articleCss: '/assets/prose.css' };
+const assets = { css: '/assets/site.css' };
 const parse = (path: string) =>
   new DOMParser().parseFromString(renderPage(path, assets).html, 'text/html');
 beforeEach(() => {
@@ -98,11 +98,9 @@ describe('static pages', () => {
       expect(
         doc.querySelector('meta[name="description"]')?.getAttribute('content'),
       ).toBe(meta.description);
-      expect(doc.querySelector('.back-link')?.getAttribute('href')).toBe(
-        '/blog/',
-      );
+      expect(doc.querySelector('main a')?.getAttribute('href')).toBe('/blog/');
       expect(
-        parse('/blog/').querySelector('.post-list a')?.getAttribute('href'),
+        parse('/blog/').querySelector('main li a')?.getAttribute('href'),
       ).toBe(path);
     },
   );
