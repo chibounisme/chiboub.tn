@@ -68,7 +68,7 @@ Routes: `/` (About me), `/blog/`, and `/blog/:slug/`. `/about/` has a static red
 
 ## Validation and deployment
 
-`pnpm lint` runs ESLint with zero warnings allowed. All source checks and automatic fixes are configured in `eslint.config.ts`; `pnpm format` runs `eslint --fix`, and `pnpm format:check` is an alias for the read-only lint command. CI and the staged-file hook use the same configuration.
+`pnpm lint` runs ESLint with zero warnings allowed. All source checks and automatic fixes are configured in `eslint.config.ts`; `pnpm format` runs `eslint --fix`. CI and the staged-file hook use the same configuration.
 
 - TypeScript and JSX use type-aware linting and ESLint Stylistic: two-space indentation, single quotes, semicolons, and trailing commas on multiline structures.
 - Tailwind classes in TSX and MDX use the official class order and remove duplicates and unnecessary whitespace, using `src/index.css` as the theme entry point.

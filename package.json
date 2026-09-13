@@ -17,7 +17,6 @@
     "test": "vitest run --coverage",
     "test:watch": "vitest",
     "format": "eslint . --fix --max-warnings 0",
-    "format:check": "pnpm lint",
     "check": "pnpm lint && pnpm test && pnpm build",
     "audit:performance": "node scripts/lighthouse.ts",
     "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort",
