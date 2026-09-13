@@ -52,7 +52,7 @@ try {
           if (!result || result.lhr.runtimeError) {
             throw new Error(
               result?.lhr.runtimeError?.message ??
-                'Lighthouse returned no result.',
+              'Lighthouse returned no result.',
             );
           }
           await writeFile(join(reports, `${run}.html`), String(result.report));
@@ -66,7 +66,7 @@ try {
           categories.map((category) => [
             category,
             median(runs.map((run) => run.categories[category]?.score ?? 0)) *
-              100,
+            100,
           ]),
         );
         const metrics = Object.fromEntries(

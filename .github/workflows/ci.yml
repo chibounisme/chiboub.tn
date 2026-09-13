@@ -2,14 +2,14 @@ name: PR checks
 
 on:
   pull_request:
-    branches: ['main']
+    branches: [main]
     types: [opened, synchronize, reopened, edited]
 
 permissions:
   contents: read
 
 env:
-  HUSKY: '0'
+  HUSKY: "0"
 
 concurrency:
   group: pr-checks-${{ github.event.pull_request.number }}

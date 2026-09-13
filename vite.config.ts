@@ -33,6 +33,12 @@ export default defineConfig({
     staticPreview(),
   ],
   server: { strictPort: true },
+  build: {
+    // Keep imported images as fingerprinted files that can be cached independently.
+    assetsInlineLimit: 0,
+    cssMinify: 'lightningcss',
+    sourcemap: false,
+  },
 });
 
 // Development renders the same templates as the build. No client app or hydration.
@@ -55,7 +61,6 @@ function staticPreview(): Plugin {
           )) as typeof Renderer;
           const result = renderer.renderPage(pathname, {
             css: '/src/index.css?direct',
-            articleCss: '/src/prose.css?direct',
           });
           res.statusCode = result.status;
           res.setHeader('Content-Type', 'text/html; charset=utf-8');

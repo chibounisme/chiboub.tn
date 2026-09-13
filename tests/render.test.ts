@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderPage, pagePaths } from '../src/render';
 import * as posts from '../src/lib/posts';
 import Article, { frontmatter } from './fixtures/article.mdx';
+import rock from '../src/assets/rock-404.webp';
 
-const assets = { css: '/assets/site.css', articleCss: '/assets/prose.css' };
+const assets = { css: '/assets/site.css' };
 const parse = (path: string) =>
   new DOMParser().parseFromString(renderPage(path, assets).html, 'text/html');
 beforeEach(() => {
@@ -16,7 +17,7 @@ describe('static pages', () => {
     const doc = parse('/');
     expect(doc.title).toBe('About me | Mohamed Chiboub');
     expect(doc.querySelector('main')?.textContent).toContain(
-      "I'm Mohamed Chiboub",
+      'I\'m Mohamed Chiboub',
     );
     expect(
       [...doc.querySelectorAll('nav a')].map((a) => a.textContent),
@@ -62,7 +63,7 @@ describe('static pages', () => {
         'This page doesn’t exist. Try the links above.',
       );
       expect(doc.querySelector('main img')?.getAttribute('src')).toBe(
-        '/rock-404.webp',
+        rock,
       );
       expect(doc.querySelector('main img')?.getAttribute('alt')).toContain(
         'pointing up toward the navigation links',
@@ -98,11 +99,9 @@ describe('static pages', () => {
       expect(
         doc.querySelector('meta[name="description"]')?.getAttribute('content'),
       ).toBe(meta.description);
-      expect(doc.querySelector('.back-link')?.getAttribute('href')).toBe(
-        '/blog/',
-      );
+      expect(doc.querySelector('main a')?.getAttribute('href')).toBe('/blog/');
       expect(
-        parse('/blog/').querySelector('.post-list a')?.getAttribute('href'),
+        parse('/blog/').querySelector('main li a')?.getAttribute('href'),
       ).toBe(path);
     },
   );

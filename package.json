@@ -13,14 +13,12 @@
     "typecheck": "tsc --noEmit",
     "typecheck:watch": "tsc --noEmit --watch",
     "build": "pnpm typecheck && node scripts/build.ts",
-    "lint": "pnpm format:check && pnpm lint:code && pnpm lint:css",
-    "lint:code": "eslint . --cache --max-warnings 0",
-    "lint:css": "stylelint \"src/**/*.css\" --max-warnings 0",
+    "lint": "eslint . --cache --max-warnings 0",
     "test": "vitest run --coverage",
     "test:watch": "vitest",
-    "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "check": "pnpm lint && pnpm test && pnpm build",
+    "format": "eslint . --fix --max-warnings 0",
+    "check:dependencies": "knip --include dependencies,unlisted,binaries,unresolved",
+    "check": "pnpm check:dependencies && pnpm lint && pnpm test && pnpm build",
     "audit:performance": "node scripts/lighthouse.ts",
     "preview": "vite preview --host 127.0.0.1 --port 5173 --strictPort",
     "prepare": "husky",
@@ -30,11 +28,15 @@
   "devDependencies": {
     "@commitlint/cli": "21.2.2",
     "@commitlint/config-conventional": "21.2.2",
+    "@eslint/css": "2.0.0",
     "@eslint/js": "^10.0.1",
+    "@eslint/markdown": "^8.0.3",
+    "@html-eslint/eslint-plugin": "0.66.0",
     "@mdx-js/mdx": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@mdx-js/rollup": "^3.1.1",
     "@shikijs/rehype": "^4.4.3",
+    "@stylistic/eslint-plugin": "5.10.0",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
@@ -43,20 +45,24 @@
     "@vitest/coverage-v8": "^5.0.0",
     "chrome-launcher": "^1.2.1",
     "eslint": "^10.10.0",
+    "eslint-plugin-better-tailwindcss": "4.7.0",
+    "eslint-plugin-jsonc": "3.4.2",
+    "eslint-plugin-mdx": "3.8.1",
+    "eslint-plugin-yml": "3.8.1",
     "husky": "9.1.7",
     "jiti": "^2.7.0",
     "jsdom": "^30.0.1",
+    "knip": "6.35.1",
     "lighthouse": "13.4.1",
     "lint-staged": "17.5.1",
-    "prettier": "^3.9.6",
-    "prettier-plugin-tailwindcss": "0.8.1",
+    "lucide-react": "^1.45.0",
+    "parse5": "8.0.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^5.2.0",
-    "stylelint": "^17.15.0",
-    "stylelint-config-standard": "^40.0.0",
+    "tailwind-csstree": "^0.4.0",
     "tailwindcss": "^4.3.3",
     "typescript": "npm:@typescript/typescript6@^6.0.2",
     "typescript-eslint": "^8.70.0",
@@ -65,16 +71,6 @@
     "yaml": "^2.9.0"
   },
   "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix --max-warnings 0",
-      "prettier --write"
-    ],
-    "*.css": [
-      "stylelint --fix --max-warnings 0",
-      "prettier --write"
-    ],
-    "*.{json,jsonc,md,mdx,yaml,yml,html,svg}": [
-      "prettier --write"
-    ]
+    "*.{ts,tsx,css,json,jsonc,md,mdx,yaml,yml,html,svg}": "eslint --fix --max-warnings 0 --no-warn-ignored"
   }
 }

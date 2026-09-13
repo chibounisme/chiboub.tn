@@ -29,8 +29,8 @@ export async function checkImageBudget(root: string) {
     if (size > maxImageBytes) {
       throw new Error(
         `Image budget exceeded: ${relative(root, path)} is ${size} bytes; ` +
-          `the limit is ${maxImageBytes} bytes (80 KiB). ` +
-          'Resize to the rendered dimensions and compress before publishing.',
+        `the limit is ${maxImageBytes} bytes (80 KiB). ` +
+        'Resize to the rendered dimensions and compress before publishing.',
       );
     }
   }
