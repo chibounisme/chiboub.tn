@@ -35,7 +35,7 @@ export const mdxComponents = {
   pre: (props) => <pre tabIndex={0} {...props} />,
   table: (props) => (
     <div
-      className="table-scroll"
+      className="my-6 overflow-x-auto"
       role="region"
       aria-label="Scrollable table"
       tabIndex={0}

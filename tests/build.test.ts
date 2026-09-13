@@ -43,7 +43,7 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
     const pages = [
       { path: 'index.html', stylesheets: 1 },
       { path: 'blog/index.html', stylesheets: 1 },
-      { path: 'blog/integration-post/index.html', stylesheets: 2 },
+      { path: 'blog/integration-post/index.html', stylesheets: 1 },
       { path: 'about/index.html', stylesheets: 0 },
       { path: '404.html', stylesheets: 1 },
     ];

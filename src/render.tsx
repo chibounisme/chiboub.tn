@@ -12,7 +12,6 @@ const siteDescription =
   'Mohamed Chiboub, software engineer. Notes on building software for the web.';
 export interface Assets {
   css: string;
-  articleCss: string;
 }
 
 export function pagePaths() {
@@ -98,7 +97,7 @@ export function renderPage(pathname: string, assets: Assets) {
   const html =
     '<!doctype html>' +
     renderToStaticMarkup(
-      <html lang="en">
+      <html lang="en" className="bg-site-bg scheme-dark">
         <head>
           <meta charSet="UTF-8" />
           <meta
@@ -122,9 +121,8 @@ export function renderPage(pathname: string, assets: Assets) {
           {status === 404 && <meta name="robots" content="noindex" />}
           <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
           <link rel="stylesheet" href={assets.css} />
-          {published && <link rel="stylesheet" href={assets.articleCss} />}
         </head>
-        <body>
+        <body className="font-sans text-base leading-[1.8] text-site-text selection:bg-site-accent selection:text-site-bg [&_:where(:focus-visible)]:outline-2 [&_:where(:focus-visible)]:outline-offset-5 [&_:where(:focus-visible)]:outline-site-accent [&_:where(a:hover)]:text-site-accent [&_a]:decoration-1 [&_a]:underline-offset-5 [&_svg]:max-w-full">
           <Layout page={page}>{content}</Layout>
         </body>
       </html>,

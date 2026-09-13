@@ -21,7 +21,7 @@ try {
     build: {
       outDir: output,
       manifest: true,
-      rolldownOptions: { input: ['src/index.css', 'src/prose.css'] },
+      rolldownOptions: { input: ['src/index.css'] },
     },
   });
   const renderer = (await import(
@@ -31,8 +31,7 @@ try {
     await readFile(join(output, '.vite/manifest.json'), 'utf8'),
   ) as Manifest;
   const css = manifest['src/index.css']?.file;
-  const articleCss = manifest['src/prose.css']?.file;
-  if (!css || !articleCss) throw new Error('Missing production stylesheets.');
+  if (!css) throw new Error('Missing production stylesheet.');
   const paths = renderer.pagePaths();
   for (const path of [...paths, '/about/', '/404.html']) {
     // Decode only the generated filename; the URL remains encoded in links and metadata.
@@ -46,7 +45,6 @@ try {
       target,
       renderer.renderPage(path, {
         css: '/' + css,
-        articleCss: '/' + articleCss,
       }).html,
     );
   }
