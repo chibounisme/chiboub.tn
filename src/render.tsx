@@ -77,11 +77,11 @@ export function renderPage(pathname: string, assets: Assets) {
             name="viewport"
             content="width=device-width, initial-scale=1.0"
           />
-          <title>{`${title} — Mohamed Chiboub`}</title>
+          <title>{`${title} | Mohamed Chiboub`}</title>
           <meta name="description" content={description} />
           <meta name="theme-color" content="#101310" />
           <link rel="canonical" href={canonical} />
-          <meta property="og:title" content={`${title} — Mohamed Chiboub`} />
+          <meta property="og:title" content={`${title} | Mohamed Chiboub`} />
           <meta property="og:description" content={description} />
           <meta property="og:url" content={canonical} />
           <meta
