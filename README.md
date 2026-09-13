@@ -1,6 +1,6 @@
 # chiboub.tn
 
-Mohamed Chiboub's personal blog. Pages are generated as complete HTML at build time and hosted on GitHub Pages. The browser receives HTML and CSS, with no JavaScript, analytics, or downloaded fonts. Content and navigation work with JavaScript disabled.
+Mohamed Chiboub's personal blog. Pages are generated as complete HTML at build time and hosted on GitHub Pages. The browser receives HTML, CSS, and optimized images, with no JavaScript, analytics, or downloaded fonts. Content and navigation work with JavaScript disabled.
 
 ## Development
 
@@ -74,7 +74,15 @@ Prettier uses Tailwind's official plugin with `src/index.css` as its v4 theme en
 
 `pnpm check` covers metadata validation, HTML rendering, links, article content, and complete production builds. Integration tests add and remove an MDX post in an isolated temporary project and verify the resulting HTML, assets, sitemap, and absence of browser scripts and downloaded fonts. They also check that invalid content fails the build.
 
-After building, run `pnpm audit:performance` with Chrome installed (or set `CHROME_PATH`). Lighthouse tests every URL in the generated sitemap three times on mobile and desktop, requiring median scores of 100 in all four categories. It also checks blocking time, layout shifts, and a 100 KiB transfer budget per page. Reports and a summary stay in the ignored `lighthouse-reports/` directory. The deployment workflow runs the same checks. Redirects and error pages are intentionally excluded from the score requirement.
+After building, run `pnpm audit:performance` with Chrome installed (or set `CHROME_PATH`). Lighthouse tests every URL in the generated sitemap and the 404 page three times on mobile and desktop, requiring median scores of 100 in all four categories. The 404 page is exempt only from the SEO score because it deliberately uses `noindex`. Every audited page must also meet the blocking-time, layout-shift, and **100 KiB total-transfer budget**. Reports and a summary stay in the ignored `lighthouse-reports/` directory. PR validation and deployment run the same checks. The minimal About redirect is excluded from Lighthouse.
+
+### Image requirements
+
+- Resize raster images for their actual display size before encoding. Prefer compressed WebP or AVIF; changing the extension or using lossless encoding alone is not an optimization strategy.
+- The build rejects any published image above **80 KiB (81,920 bytes)**, including unused images copied from `public/` and SVGs. `scripts/image-budget.ts` enforces this limit in local builds, PR checks, and deployment; integration tests verify that oversized images fail the build.
+- Supply responsive `srcSet` and `sizes` for different display widths and explicit `width` and `height` to reserve layout space. Keep useful alternative text and an accessible text equivalent for captions embedded in artwork.
+- Inspect the final encoded output at desktop and phone sizes for readable text, compression artifacts, background seams, and horizontal overflow. Check the asset selected by the browser as well as the bytes transferred; do not ship original exports or discarded variants.
+- The 404 artwork is intentionally pixelated: its largest source matches the 580px text column, with a 348px variant for narrower displays. Both encodings use WebP quality 80 with metadata removed (75,788 and 29,868 bytes respectively). High-density screens can select the larger source, while both remain within the same budget.
 
 Local Lighthouse results measure the production build under simulated conditions. Verify the deployed URLs with PageSpeed Insights after release; hosting latency and Lighthouse version differences can change scores.
 

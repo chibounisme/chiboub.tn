@@ -3,6 +3,7 @@ import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build, type Manifest } from 'vite';
 import type * as Renderer from '../src/render.tsx';
+import { checkImageBudget } from './image-budget.ts';
 
 const root = process.cwd();
 const rendererDir = resolve(root, '.build');
@@ -63,6 +64,7 @@ try {
   );
   await writeFile(join(output, '.nojekyll'), '');
   await rm(join(output, '.vite'), { recursive: true, force: true });
+  await checkImageBudget(output);
   console.log(
     `Generated ${paths.length} content pages, About redirect, and 404 page.`,
   );

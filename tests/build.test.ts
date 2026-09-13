@@ -60,10 +60,21 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
         (link) => ({
           href: link.getAttribute('href'),
           as: link.getAttribute('as'),
+          srcSet: link.getAttribute('imagesrcset'),
+          sizes: link.getAttribute('imagesizes'),
         }),
       );
       expect(preloads).toEqual(
-        path === '404.html' ? [{ href: '/rock-404.webp', as: 'image' }] : [],
+        path === '404.html'
+          ? [
+              {
+                href: null,
+                as: 'image',
+                srcSet: '/rock-404-small.webp 348w, /rock-404.webp 580w',
+                sizes: '(max-width: 620px) calc(100vw - 48px), 580px',
+              },
+            ]
+          : [],
       );
       for (const resource of doc.querySelectorAll('link[rel="stylesheet"]')) {
         expect(resource.getAttribute('href')).toMatch(/^\/assets\//);
@@ -88,6 +99,14 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
             target === '/about' ? join(resolved, 'index.html') : resolved,
           ),
         ).resolves.toBeDefined();
+      }
+      for (const image of doc.querySelectorAll('img[srcset]')) {
+        for (const candidate of image.getAttribute('srcset')!.split(',')) {
+          const url = candidate.trim().split(/\s+/)[0]!;
+          await expect(
+            readFile(join(root, 'dist', url.slice(1))),
+          ).resolves.toBeDefined();
+        }
       }
     }
     const article = new DOMParser().parseFromString(
@@ -124,6 +143,12 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
     expect(
       await readFile(join(root, 'dist/sitemap.xml'), 'utf8'),
     ).not.toContain('integration-post');
+    const oversized = join(root, 'public/oversized.webp');
+    await writeFile(oversized, Buffer.alloc(80 * 1024 + 1));
+    await expect(run()).rejects.toThrow(
+      /Image budget exceeded: oversized.webp/,
+    );
+    await rm(oversized);
     await writeFile(
       post,
       '---\ntitle: Broken\ndate: not-a-date\n---\nInvalid post',

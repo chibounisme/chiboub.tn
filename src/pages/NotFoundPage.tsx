@@ -6,9 +6,11 @@ export default function NotFoundPage() {
       <img
         className="not-found-reaction"
         src="/rock-404.webp"
+        srcSet="/rock-404-small.webp 348w, /rock-404.webp 580w"
+        sizes="(max-width: 620px) calc(100vw - 48px), 580px"
         alt="The Rock raising one eyebrow, with one large hand in the foreground pointing up toward the navigation links, in 8-bit text art."
-        width="1163"
-        height="1353"
+        width="580"
+        height="675"
       />
     </section>
   );
