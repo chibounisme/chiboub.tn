@@ -33,6 +33,12 @@ export default defineConfig({
     staticPreview(),
   ],
   server: { strictPort: true },
+  build: {
+    // Keep imported images as fingerprinted files that can be cached independently.
+    assetsInlineLimit: 0,
+    cssMinify: 'lightningcss',
+    sourcemap: false,
+  },
 });
 
 // Development renders the same templates as the build. No client app or hydration.

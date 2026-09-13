@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderPage, pagePaths } from '../src/render';
 import * as posts from '../src/lib/posts';
 import Article, { frontmatter } from './fixtures/article.mdx';
+import rock from '../src/assets/rock-404.webp';
 
 const assets = { css: '/assets/site.css' };
 const parse = (path: string) =>
@@ -62,7 +63,7 @@ describe('static pages', () => {
         'This page doesn’t exist. Try the links above.',
       );
       expect(doc.querySelector('main img')?.getAttribute('src')).toBe(
-        '/rock-404.webp',
+        rock,
       );
       expect(doc.querySelector('main img')?.getAttribute('alt')).toContain(
         'pointing up toward the navigation links',

@@ -15,7 +15,8 @@ Open http://127.0.0.1:5173. Development renders the same templates on request; r
 
 | Command                | Purpose                                                             |
 | ---------------------- | ------------------------------------------------------------------- |
-| `pnpm check`           | Formatting, lint, tests with coverage, types, and production build  |
+| `pnpm check`           | Dependency usage, lint, tests with coverage, types, and production build |
+| `pnpm check:dependencies` | Find unused packages, missing declarations, and unresolved imports |
 | `pnpm dev`             | Local development server                                            |
 | `pnpm build`           | Generate the static site in `dist/`                                 |
 | `pnpm preview`         | Serve the production output on port 5173; stop the dev server first |
@@ -29,13 +30,16 @@ Open http://127.0.0.1:5173. Development renders the same templates on request; r
 - `src/components/` and `src/pages/` are build-time React templates. Use ordinary anchors; browser hooks and event handlers do not run on the published site.
 - `src/lib/posts.ts` discovers local MDX files during the build. Article code is never shipped to the browser.
 - `src/index.css` configures Tailwind; page and article styles use utilities in the components.
-- `scripts/build.ts` bundles the renderer into temporary `.build/`, builds CSS, then writes HTML, a sitemap, and robots.txt into `dist/`. The temporary renderer is removed and never uploaded.
+- `scripts/build.ts` bundles the renderer and stages the site in `.build/`. It includes assets imported by templates and MDX, validates the complete output, then replaces `dist/`. Validation failures preserve the last successful `dist/`; temporary build files are removed on success and failure.
+- `src/assets/` holds imported artwork. Vite emits content-hashed filenames, so changing an image changes its URL. `public/` is for files that need stable names, such as `CNAME` and the favicon; its contents are copied unchanged and must already be optimized.
 - `scripts/frontmatter.ts` validates post metadata. MDX and Shiki syntax highlighting run at build time. Only trusted, repository-authored MDX should be compiled: it can execute code during the build.
 - Text uses Arial, Helvetica, or Liberation Sans with the browser's sans-serif fallback. Dates and code use Courier New, Courier, or Liberation Mono with the browser's monospace fallback. All fonts come from the visitor's device; appearance can vary slightly by operating system.
-- Tailwind's Vite plugin scans only components, pages, and article sources. Preflight stays enabled for consistent browser defaults. Vite minifies and fingerprints the shared stylesheet and a separate article stylesheet; only article pages load the latter.
+- Tailwind's Vite plugin scans only components, pages, article sources, and the document renderer. Preflight stays enabled for consistent browser defaults. Vite uses Lightning CSS to minify one fingerprinted stylesheet. Source maps and image inlining are disabled for published assets.
 - `/about/` is a minimal redirect with a fallback link, without stylesheet or script requests. Missing pages retain their 404 response and `noindex` metadata.
 
 React, MDX, Vite, and TypeScript are development dependencies. The native compiler is TypeScript 7.0.2, the latest stable release verified on September 13, 2026. The `typescript` alias supplies the TypeScript 6 compiler API required by ESLint; `tsc` and CI type checks use the native TypeScript 7 compiler.
+
+`pnpm check:dependencies` runs Knip locally and in both release workflows. It checks unused dependencies, undeclared packages and commands, and unresolved imports without an ignore list. The September 13 audit found every existing direct dependency in use, including `jiti` for ESLint's TypeScript configuration and `@mdx-js/mdx` for compiler tests. Knip supplies the recurring audit; `parse5` parses emitted HTML and SVG for build validation. Neither ships to the browser.
 
 ## Contributing
 
@@ -79,6 +83,8 @@ Generated output, dependency directories, reports, and `pnpm-lock.yaml` are igno
 
 `pnpm check` covers metadata validation, HTML rendering, links, article content, and complete production builds. Integration tests add and remove an MDX post in an isolated temporary project and verify the resulting HTML, assets, sitemap, and absence of browser scripts and downloaded fonts. They also check that invalid content fails the build.
 
+Every build validates the actual output through `scripts/check-output.ts`, including real articles and public files. It rejects missing local links and assets (including responsive candidates and CSS URLs), unused published assets, remote or inline resources, executable markup, downloaded fonts, source maps, and unexpected file types. Images require alternative text (empty for decorative images) and positive width/height; width-based responsive sets require `sizes`. Shared CSS has a **32 KiB uncompressed budget**, and each HTML page has a **64 KiB gzip budget**. These checks complement the existing image and Lighthouse transfer budgets. They enforce the site's static-content policy; they are not a sandbox for untrusted MDX.
+
 After building, run `pnpm audit:performance` with Chrome installed (or set `CHROME_PATH`). Lighthouse tests every URL in the generated sitemap and the 404 page three times on mobile and desktop, requiring median scores of 100 in all four categories. The 404 page is exempt only from the SEO score because it deliberately uses `noindex`. Every audited page must also meet the blocking-time, layout-shift, and **100 KiB total-transfer budget**. Reports and a summary stay in the ignored `lighthouse-reports/` directory. PR validation and deployment run the same checks. The minimal About redirect is excluded from Lighthouse.
 
 ### Image requirements
@@ -86,6 +92,7 @@ After building, run `pnpm audit:performance` with Chrome installed (or set `CHRO
 - Resize raster images for their actual display size before encoding. Prefer compressed WebP or AVIF; changing the extension or using lossless encoding alone is not an optimization strategy.
 - The build rejects any published image above **80 KiB (81,920 bytes)**, including unused images copied from `public/` and SVGs. `scripts/image-budget.ts` enforces this limit in local builds, PR checks, and deployment; integration tests verify that oversized images fail the build.
 - Supply responsive `srcSet` and `sizes` for different display widths and explicit `width` and `height` to reserve layout space. Keep useful alternative text and an accessible text equivalent for captions embedded in artwork.
+- In MDX, import optimized images and use JSX to supply dimensions, for example `import diagram from './diagram.webp'` followed by `<img src={diagram} alt="Request flow" width="580" height="320" loading="lazy" decoding="async" />`. Use lazy loading for images below the fold; leave prominent initial images eager. Plain Markdown image syntax cannot provide the required dimensions.
 - Inspect the final encoded output at desktop and phone sizes for readable text, compression artifacts, background seams, and horizontal overflow. Check the asset selected by the browser as well as the bytes transferred; do not ship original exports or discarded variants.
 - The 404 artwork is intentionally pixelated: its largest source matches the 580px text column, with a 348px variant for narrower displays. Both encodings use WebP quality 80 with metadata removed (75,788 and 29,868 bytes respectively). High-density screens can select the larger source, while both remain within the same budget.
 
@@ -95,7 +102,7 @@ GitHub Actions separates PR validation from production deployment:
 
 - `ci.yml` (PR checks) validates pull requests targeting `main`, using a read-only token and no deployment environment or Pages artifact. New commits cancel obsolete checks for that PR.
 - `deploy.yml` (Deploy site) runs on pushes to `main` or manual dispatch. Both jobs are restricted to `main`, including manual runs. It validates the merged commit, uploads the resulting `dist/` artifact, and deploys that same artifact only after the build succeeds. Production runs share a concurrency group without cancelling an active deployment.
-- `.github/actions/check-site/action.yml` shares dependency setup, formatting, lint, tests, type checking, build, Lighthouse audits, and report retention between the two workflows. Changes to validation apply to both paths.
+- `.github/actions/check-site/action.yml` shares dependency setup and usage checks, lint, tests, type checking, build validation, Lighthouse audits, and report retention between the two workflows. Changes to validation apply to both paths.
 
 Only the publish job has Pages and OIDC write permissions, and it uses the `github-pages` environment. Build jobs remain read-only. Deployment uses the artifact from its own run; PR artifacts are never promoted into production. A missing or invalid Pages configuration fails deployment instead of silently skipping it. Official actions are pinned to commit SHAs, checkout does not persist credentials, and dependency installation uses the committed lockfile.
 
