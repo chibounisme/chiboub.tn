@@ -179,6 +179,13 @@ time {
   font-size: 0.875rem;
 }
 
+.not-found-reaction {
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  mix-blend-mode: lighten;
+}
+
 .skip-link {
   position: absolute;
   top: 12px;

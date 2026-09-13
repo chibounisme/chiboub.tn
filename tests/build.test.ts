@@ -55,9 +55,16 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
       ).toBeGreaterThan(10);
       expect(doc.querySelector('#root, canvas')).toBeNull();
       expect(doc.scripts).toHaveLength(0);
-      expect(
-        doc.querySelector('link[rel="preconnect"], link[rel="preload"]'),
-      ).toBeNull();
+      expect(doc.querySelector('link[rel="preconnect"]')).toBeNull();
+      const preloads = [...doc.querySelectorAll('link[rel="preload"]')].map(
+        (link) => ({
+          href: link.getAttribute('href'),
+          as: link.getAttribute('as'),
+        }),
+      );
+      expect(preloads).toEqual(
+        path === '404.html' ? [{ href: '/rock-404.webp', as: 'image' }] : [],
+      );
       for (const resource of doc.querySelectorAll('link[rel="stylesheet"]')) {
         expect(resource.getAttribute('href')).toMatch(/^\/assets\//);
       }
@@ -67,8 +74,8 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
       expect(
         doc.querySelector('meta[name="description"]')?.getAttribute('content'),
       ).toBeTruthy();
-      // Every local link, stylesheet, and favicon resolves without client routing.
-      for (const element of doc.querySelectorAll('[href], script[src]')) {
+      // Every local link, image, stylesheet, and favicon resolves without client routing.
+      for (const element of doc.querySelectorAll('[href], [src]')) {
         const url = element.getAttribute('href') ?? element.getAttribute('src');
         if (!url?.startsWith('/') || url.startsWith('//')) continue;
         const target = url.split('#')[0] ?? '';
