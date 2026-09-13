@@ -35,12 +35,14 @@ export function parseFrontmatter(source: string): PostFrontmatter {
   }
   const tags: string[] = [];
   if (data.tags !== undefined) {
-    if (!Array.isArray(data.tags))
+    if (!Array.isArray(data.tags)) {
       throw new Error('Post tags must be a list of non-empty strings.');
+    }
     const authoredTags: unknown[] = data.tags;
     for (const tag of authoredTags) {
-      if (typeof tag !== 'string' || !tag.trim())
+      if (typeof tag !== 'string' || !tag.trim()) {
         throw new Error('Post tags must be a list of non-empty strings.');
+      }
       tags.push(tag.trim());
     }
   }

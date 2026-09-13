@@ -40,24 +40,34 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
     const post = join(root, 'src/content/blog/integration-post.mdx');
     await cp(join(project, 'tests/fixtures/article.mdx'), post);
     await run();
-    const paths = [
-      'index.html',
-      'blog/index.html',
-      'blog/integration-post/index.html',
-      'about/index.html',
-      '404.html',
+    const pages = [
+      { path: 'index.html', stylesheets: 1 },
+      { path: 'blog/index.html', stylesheets: 1 },
+      { path: 'blog/integration-post/index.html', stylesheets: 2 },
+      { path: 'about/index.html', stylesheets: 0 },
+      { path: '404.html', stylesheets: 1 },
     ];
-    for (const path of paths) {
+    for (const { path, stylesheets } of pages) {
       const html = await readFile(join(root, 'dist', path), 'utf8');
       const doc = new DOMParser().parseFromString(html, 'text/html');
       expect(
         doc.querySelector('main')?.textContent?.trim().length,
       ).toBeGreaterThan(10);
       expect(doc.querySelector('#root, canvas')).toBeNull();
+      expect(doc.scripts).toHaveLength(0);
+      expect(
+        doc.querySelector('link[rel="preconnect"], link[rel="preload"]'),
+      ).toBeNull();
+      for (const resource of doc.querySelectorAll('link[rel="stylesheet"]')) {
+        expect(resource.getAttribute('href')).toMatch(/^\/assets\//);
+      }
+      expect(doc.querySelectorAll('link[rel="stylesheet"]')).toHaveLength(
+        stylesheets,
+      );
       expect(
         doc.querySelector('meta[name="description"]')?.getAttribute('content'),
       ).toBeTruthy();
-      // Every local link, stylesheet, favicon, and script resolves without client routing.
+      // Every local link, stylesheet, and favicon resolves without client routing.
       for (const element of doc.querySelectorAll('[href], script[src]')) {
         const url = element.getAttribute('href') ?? element.getAttribute('src');
         if (!url?.startsWith('/') || url.startsWith('//')) continue;
@@ -88,10 +98,11 @@ it('builds readable pages with valid assets and removes deleted posts on rebuild
     ).toBe('https://chiboub.tn/blog/integration-post/');
     const assets = await readdir(join(root, 'dist/assets'));
     const scripts = assets.filter((name) => name.endsWith('.js'));
-    expect(scripts).toHaveLength(1);
-    const js = await readFile(join(root, 'dist/assets', scripts[0]!), 'utf8');
-    expect(Buffer.byteLength(js)).toBeLessThan(2000);
-    expect(js).not.toMatch(/react-dom|react-router|hydrateRoot|createRoot/);
+    expect(scripts).toHaveLength(0);
+    for (const name of assets.filter((name) => name.endsWith('.css'))) {
+      const css = await readFile(join(root, 'dist/assets', name), 'utf8');
+      expect(css).not.toMatch(/@font-face|url\(\s*['"]?https?:\/\//);
+    }
     expect(await readFile(join(root, 'dist/sitemap.xml'), 'utf8')).toContain(
       '/blog/integration-post/',
     );

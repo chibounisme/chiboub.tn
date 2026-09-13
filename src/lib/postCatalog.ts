@@ -46,8 +46,9 @@ export function createPostCatalog(modules: Record<string, PostModule>) {
     ) {
       throw new Error('Post filenames must have a non-empty, valid slug.');
     }
-    if (slugs.has(meta.slug))
+    if (slugs.has(meta.slug)) {
       throw new Error(`Duplicate post slug: ${meta.slug}`);
+    }
     slugs.add(meta.slug);
   }
 

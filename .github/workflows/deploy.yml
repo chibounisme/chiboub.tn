@@ -42,8 +42,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check formatting, lint, tests, types, and production build
-        run: pnpm check
+      - name: Verify native TypeScript compiler
+        run: pnpm exec tsc --version
+
+      - name: Lint TypeScript and CSS and check formatting
+        run: pnpm lint
+
+      - name: Run tests, type checking, and production build
+        run: pnpm test && pnpm build
+
+      - name: Check mobile and desktop Lighthouse scores for every content page
+        run: pnpm audit:performance
+
+      - name: Save Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lighthouse-reports
+          path: lighthouse-reports/
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Check Pages availability
         id: pages

@@ -12,7 +12,7 @@ const siteDescription =
   'Mohamed Chiboub, software engineer. Notes on building software for the web.';
 export interface Assets {
   css: string;
-  analytics?: string;
+  articleCss: string;
 }
 
 export function pagePaths() {
@@ -34,7 +34,35 @@ export function renderPage(pathname: string, assets: Assets) {
   let status = 404;
   const redirect = path === '/about';
 
-  if (path === '/' || redirect) {
+  if (redirect) {
+    return {
+      html:
+        '<!doctype html>' +
+        renderToStaticMarkup(
+          <html lang="en">
+            <head>
+              <meta charSet="UTF-8" />
+              <meta
+                name="viewport"
+                content="width=device-width, initial-scale=1.0"
+              />
+              <title>About me | Mohamed Chiboub</title>
+              <meta name="description" content={siteDescription} />
+              <link rel="canonical" href={siteUrl + '/'} />
+              <meta httpEquiv="refresh" content="0;url=/" />
+            </head>
+            <body>
+              <main>
+                <a href="/">Continue to About me</a>
+              </main>
+            </body>
+          </html>,
+        ),
+      status: 200,
+    };
+  }
+
+  if (path === '/') {
     title = 'About me';
     canonical = siteUrl + '/';
     page = 'about';
@@ -92,20 +120,9 @@ export function renderPage(pathname: string, assets: Assets) {
             <meta property="article:published_time" content={published} />
           )}
           {status === 404 && <meta name="robots" content="noindex" />}
-          {redirect && <meta httpEquiv="refresh" content="0;url=/" />}
           <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-          <link rel="preconnect" href="https://fonts.googleapis.com" />
-          <link
-            rel="preconnect"
-            href="https://fonts.gstatic.com"
-            crossOrigin="anonymous"
-          />
-          <link
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap"
-            rel="stylesheet"
-          />
           <link rel="stylesheet" href={assets.css} />
-          {assets.analytics && <script type="module" src={assets.analytics} />}
+          {published && <link rel="stylesheet" href={assets.articleCss} />}
         </head>
         <body>
           <Layout page={page}>{content}</Layout>
