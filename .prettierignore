@@ -2,4 +2,6 @@ node_modules
 .pnpm-store
 dist
 coverage
+.build
+lighthouse-reports
 pnpm-lock.yaml

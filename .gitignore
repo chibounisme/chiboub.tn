@@ -50,3 +50,4 @@ Thumbs.db
 
 # Build-time renderer (never published)
 .build
+lighthouse-reports

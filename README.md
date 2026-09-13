@@ -1,6 +1,6 @@
 # chiboub.tn
 
-Mohamed Chiboub's personal blog. Pages are generated as complete HTML at build time and hosted on GitHub Pages. The browser receives CSS and a small analytics script, with no React runtime or client router. Content and navigation work with JavaScript disabled.
+Mohamed Chiboub's personal blog. Pages are generated as complete HTML at build time and hosted on GitHub Pages. The browser receives HTML and CSS, with no JavaScript, analytics, or downloaded fonts. Content and navigation work with JavaScript disabled.
 
 ## Development
 
@@ -29,11 +29,13 @@ Open http://127.0.0.1:5173. Development renders the same templates on request; r
 - `src/components/` and `src/pages/` are build-time React templates. Use ordinary anchors; browser hooks and event handlers do not run on the published site.
 - `src/lib/posts.ts` discovers local MDX files during the build. Article code is never shipped to the browser.
 - `src/index.css` and `src/prose.css` define the layout and article styles, compiled with Tailwind.
-- `scripts/build.ts` bundles the renderer into temporary `.build/`, builds CSS and analytics, then writes HTML, a sitemap, and robots.txt into `dist/`. The temporary renderer is removed and never uploaded.
+- `scripts/build.ts` bundles the renderer into temporary `.build/`, builds CSS, then writes HTML, a sitemap, and robots.txt into `dist/`. The temporary renderer is removed and never uploaded.
 - `scripts/frontmatter.ts` validates post metadata. MDX and Shiki syntax highlighting run at build time. Only trusted, repository-authored MDX should be compiled: it can execute code during the build.
-- `src/lib/analytics.ts` loads Google Analytics only on the production `chiboub.tn` hostname. Each navigation is a normal page load. Google Fonts supplies DM Sans and IBM Plex Mono.
+- Text uses Arial, Helvetica, or Liberation Sans with the browser's sans-serif fallback. Dates and code use Courier New, Courier, or Liberation Mono with the browser's monospace fallback. All fonts come from the visitor's device; appearance can vary slightly by operating system.
+- Tailwind's Vite plugin scans only components, pages, and article sources. Preflight stays enabled for consistent browser defaults. Vite minifies and fingerprints the shared stylesheet and a separate article stylesheet; only article pages load the latter.
+- `/about/` is a minimal redirect with a fallback link, without stylesheet or script requests. Missing pages retain their 404 response and `noindex` metadata.
 
-React, MDX, Vite, and TypeScript are development dependencies. TypeScript 7 supplies the native checker; the TypeScript 6 alias supplies the compiler API required by ESLint.
+React, MDX, Vite, and TypeScript are development dependencies. The native compiler is TypeScript 7.0.2, the latest stable release verified on September 13, 2026. The `typescript` alias supplies the TypeScript 6 compiler API required by ESLint; `tsc` and CI type checks use the native TypeScript 7 compiler.
 
 ## Writing posts
 
@@ -56,7 +58,15 @@ Routes: `/` (About me), `/blog/`, and `/blog/:slug/`. `/about/` has a static red
 
 ## Validation and deployment
 
-`pnpm check` covers metadata validation, HTML rendering, links, article content, analytics, and complete production builds. Integration tests add and remove an MDX post in an isolated temporary project and verify the resulting HTML, assets, sitemap, and absence of a browser React bundle. They also check that invalid content fails the build.
+`pnpm lint` enforces Prettier formatting, type-aware ESLint rules for TypeScript and templates, and Stylelint's standard rules for CSS. Tailwind's `@theme` and `@source` directives are explicitly allowed, and imports use string notation to preserve Tailwind's `source()` handling. Both linters reject warnings, and GitHub Actions runs this as a required step before tests, builds, and performance checks. Generated reports and build output are excluded from source linting.
+
+Prettier uses Tailwind's official plugin with `src/index.css` as its v4 theme entry point, enforcing Tailwind's recommended class ordering and removing duplicate classes. Use `pnpm format` to apply formatting; CI uses `pnpm lint` to check it without rewriting files.
+
+`pnpm check` covers metadata validation, HTML rendering, links, article content, and complete production builds. Integration tests add and remove an MDX post in an isolated temporary project and verify the resulting HTML, assets, sitemap, and absence of browser scripts and downloaded fonts. They also check that invalid content fails the build.
+
+After building, run `pnpm audit:performance` with Chrome installed (or set `CHROME_PATH`). Lighthouse tests every URL in the generated sitemap three times on mobile and desktop, requiring median scores of 100 in all four categories. It also checks blocking time, layout shifts, and a 100 KiB transfer budget per page. Reports and a summary stay in the ignored `lighthouse-reports/` directory. The deployment workflow runs the same checks. Redirects and error pages are intentionally excluded from the score requirement.
+
+Local Lighthouse results measure the production build under simulated conditions. Verify the deployed URLs with PageSpeed Insights after release; hosting latency and Lighthouse version differences can change scores.
 
 GitHub Actions validates pull requests. Pushes to `main` and manual runs on `main` validate and then deploy `dist/` to Pages. Deployment requires the build job to pass and a configured Pages site. If Pages is not configured, validation still runs and the workflow reports a warning; configure Pages and rerun the workflow to deploy. Official actions are pinned to commit SHAs; installation uses the committed lockfile. Only the deployment job has Pages write permissions.
 

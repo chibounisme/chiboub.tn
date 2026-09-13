@@ -3,7 +3,14 @@ import { defineConfig, globalIgnores } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
 export default defineConfig([
-  globalIgnores(['dist', 'coverage', 'node_modules', '.build']),
+  globalIgnores([
+    'dist',
+    'coverage',
+    'node_modules',
+    '.build',
+    'lighthouse-reports',
+  ]),
+  { linterOptions: { reportUnusedDisableDirectives: 'error' } },
   {
     files: ['**/*.{ts,tsx}'],
     extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked],
@@ -14,6 +21,10 @@ export default defineConfig([
       },
     },
     rules: {
+      curly: ['error', 'multi-line'],
+      eqeqeq: ['error', 'always'],
+      'no-nested-ternary': 'error',
+      'no-duplicate-imports': ['error', { allowSeparateTypeImports: true }],
       '@typescript-eslint/consistent-type-imports': 'error',
       '@typescript-eslint/no-unused-vars': [
         'error',
