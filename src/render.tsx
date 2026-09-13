@@ -45,7 +45,7 @@ export function renderPage(pathname: string, assets: Assets) {
                 name="viewport"
                 content="width=device-width, initial-scale=1.0"
               />
-              <title>About me | Mohamed Chiboub</title>
+              <title>About me</title>
               <meta name="description" content={siteDescription} />
               <link rel="canonical" href={siteUrl + '/'} />
               <meta httpEquiv="refresh" content="0;url=/" />
@@ -104,11 +104,11 @@ export function renderPage(pathname: string, assets: Assets) {
             name="viewport"
             content="width=device-width, initial-scale=1.0"
           />
-          <title>{`${title} | Mohamed Chiboub`}</title>
+          <title>{title}</title>
           <meta name="description" content={description} />
           <meta name="theme-color" content="#101310" />
           <link rel="canonical" href={canonical} />
-          <meta property="og:title" content={`${title} | Mohamed Chiboub`} />
+          <meta property="og:title" content={title} />
           <meta property="og:description" content={description} />
           <meta property="og:url" content={canonical} />
           <meta
