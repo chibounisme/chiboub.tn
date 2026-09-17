@@ -99,7 +99,8 @@ describe('static pages', () => {
       expect(
         doc.querySelector('meta[name="description"]')?.getAttribute('content'),
       ).toBe(meta.description);
-      expect(doc.querySelector('main a')?.getAttribute('href')).toBe('/blog/');
+      expect(doc.querySelector('article > a')).toBeNull();
+      expect(doc.querySelector('article > header p')).toBeNull();
       expect(
         parse('/blog/').querySelector('main li a')?.getAttribute('href'),
       ).toBe(path);

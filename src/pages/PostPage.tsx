@@ -1,5 +1,4 @@
 import { MDXProvider } from '@mdx-js/react';
-import { ArrowLeft } from 'lucide-react';
 import type { PostEntry } from '../lib/postCatalog';
 import { mdxComponents } from '../components/MDXComponents';
 import { formatPostDate } from '../lib/dates';
@@ -8,13 +7,6 @@ export default function PostPage({ post }: { post: PostEntry }) {
   const { meta, Component } = post;
   return (
     <article>
-      <a
-        href="/blog/"
-        className="mb-4.5 inline-flex min-h-11 items-center gap-2 py-2 text-sm leading-[1.8] text-site-text-dim underline"
-      >
-        <ArrowLeft aria-hidden="true" className="size-4 shrink-0" />
-        All posts
-      </a>
       <header className="mb-9">
         <time
           className="font-mono text-xs leading-[1.8] text-site-text-dim"
@@ -25,9 +17,6 @@ export default function PostPage({ post }: { post: PostEntry }) {
         <h1 className="mt-2.5 mb-5 text-[clamp(1.6rem,4vw,1.85rem)] leading-[1.35] font-medium tracking-[-0.025em] wrap-anywhere">
           {meta.title}
         </h1>
-        {meta.description && (
-          <p className="text-site-text-dim">{meta.description}</p>
-        )}
         {meta.tags.length > 0 && (
           <ul
             className="mt-3.75 flex list-none flex-wrap gap-3 p-0 font-mono text-xs leading-[1.6] text-site-accent-dim"
